@@ -1,0 +1,21 @@
+# exclude emacs crash and autosave files
+/*~
+/*/*~
+/*/*/*~
+/#*#
+
+# exclude IDE files
+.idea
+build*/
+venv
+scripts/plots/*.png
+scripts/plots/.ipynb*
+analysis/.ipynb_checkpoints
+
+# exclude extra python files
+__init__.py
+input/*/*.pyc
+input/__pycache__
+
+# exclude test files
+interpolation_test
