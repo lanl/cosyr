@@ -2,7 +2,7 @@
 
 
 ###### Summary
-Cosyr is a particle beam dynamics simulation code with multi-dimensional [synchrotron radiation](https://en.wikipedia.org/wiki/Synchrotron_radiation) effects. It tackles a fundamental problem of the nonlinear dynamics of a particle beam from its complete self-fields, particularly the radiation fields, such as the [coherent synchrotron radiation (CSR)](http://linkinghub.elsevier.com/retrieve/pii/S016890029700822X) problem. The latter underpins many accelerator design issues in ultra-bright beam applications, as well as those arising in the development of advanced accelerators. It is written in C++ and supports two levels of parallelism with MPI and Kokkos.
+Cosyr is a particle beam dynamics simulation code with multi-dimensional [synchrotron radiation](https://en.wikipedia.org/wiki/Synchrotron_radiation) effects. It tackles a fundamental problem of the nonlinear dynamics of a particle beam from its complete self-fields, particularly the radiation fields, i.e the [coherent synchrotron radiation (CSR)](http://linkinghub.elsevier.com/retrieve/pii/S016890029700822X) problem. The latter underpins many accelerator design issues in ultra-bright beam applications, as well as those arising in the development of advanced accelerators. It is written in C++ and supports two levels of parallelism with MPI and Kokkos.
 
 ###### Algorithms
 Cosyr consists of three components:
