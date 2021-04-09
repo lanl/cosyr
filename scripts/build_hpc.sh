@@ -12,7 +12,7 @@ cluster=${supported_clusters[0]}
 compiler=${supported_compilers[0]}
 
 print_usage() {
-  echo -e "Usage: ./build [options]"
+  echo -e "Usage: ./build_hpc.sh [options]"
   echo -e "Options:"
   echo -e "  -h, --help              show this help message and exit"
   echo -e "  -g, --gpu               use GPU as device backend"
