@@ -1,4 +1,4 @@
-FROM ubuntu
+FROM ubuntu AS build
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ="America/Denver"
@@ -127,6 +127,20 @@ RUN git clone --recursive git@github.com:laristra/portage.git && \
     make -j 4 && \
     make install
 
+FROM ubuntu AS runtime
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ="America/Denver"
+
+ARG dependencies="/home/dependencies"
+
+RUN apt-get update && \
+    apt-get --no-install-recommends install build-essential -y \
+    cmake g++ make git python3 python3.8-distutils \
+    mpich libmpich-dev libboost-dev && \
+    apt-get clean && mkdir -p ${dependencies}
+
+COPY --from=build "${dependencies}" "${dependencies}"
 RUN ls -l "${dependencies}"
 
 ENTRYPOINT ["server"]
