@@ -55,6 +55,9 @@ if (ENABLE_TCMALLOC)
   string(APPEND CMAKE_EXE_LINKER_FLAGS " -ltcmalloc ${TCMALLOC_LIB}")
 endif()
 
+# disable GCC visibility warnings
+target_compile_options(cosyr PRIVATE "-Wno-attributes")
+
 # set headers source and libraries
 target_include_directories(cosyr PUBLIC
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
