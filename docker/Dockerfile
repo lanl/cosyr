@@ -135,6 +135,3 @@ RUN apt-get update && \
 
 COPY --from=build "${dependencies}" "${dependencies}"
 RUN ls -l "${dependencies}"
-
-# ------------------------------------------------------------------------------
-ENTRYPOINT ["server"]
