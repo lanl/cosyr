@@ -27,4 +27,6 @@ jobs:
             make -j 4 && \
             export PYTHONPATH=/home/cosyr && \
             export OMP_PROC_BIND=close and OMP_PLACES=cores && \
-            mpiexec -np 1 ./cosyr /home/cosyr/input/test_beam_g10_l200.py"
+            mpiexec -np 1 ./cosyr /home/cosyr/input/test_beam_g10_l200.py && \
+            cmp /home/cosyr/build/test_beam_g10_l200/mesh/399/comoving_mesh_field.csv \
+                /home/cosyr/analysis/reference_field.csv"
