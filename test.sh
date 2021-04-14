@@ -1,7 +1,6 @@
 #!/bin/bash
 
 docker pull hobywan/cosyr
-docker ps
 docker run -v "$(pwd):/home/cosyr" -it hobywan/cosyr /bin/bash -c \
       "cd /home/cosyr && \
       mkdir build-test &&
