@@ -72,7 +72,7 @@ namespace exprtk
    #if __GNUC__  >= 7
 
       #define exprtk_disable_fallthrough_begin                      \
-      _Pragma ("GCC diagnostic move")                               \
+      _Pragma ("GCC diagnostic push")                               \
       _Pragma ("GCC diagnostic ignored \"-Wimplicit-fallthrough\"") \
 
       #define exprtk_disable_fallthrough_end                        \
