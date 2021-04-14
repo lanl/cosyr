@@ -5,14 +5,14 @@ on:
 
 jobs:
   build:
-    name: "compilation"
+    name: "build-and-run"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
       - name: "pull docker image"
         run: docker pull hobywan/cosyr:latest
 
-      - name: "create volume and build cosyr"
+      - name: "create volume, build cosyr and run test"
         run: |
           docker run -v "$(pwd):/home/cosyr" hobywan/cosyr /bin/bash -c \
             "cd /home/cosyr && mkdir build && cd build && \
