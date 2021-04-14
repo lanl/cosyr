@@ -9,7 +9,7 @@ ARG dependencies="/home/dependencies"
 
 RUN apt-get update && \
     apt-get --no-install-recommends install build-essential -y \
-    cmake g++ make git ssh-client python3 python3.8-distutils \
+    cmake g++ make git ssh-client python3 libpython3.8-dev python3.8-distutils \
     mpich libmpich-dev libboost-dev && \
     apt-get clean && mkdir -p ${dependencies}
 
@@ -129,7 +129,7 @@ ARG dependencies="/home/dependencies"
 
 RUN apt-get update && \
     apt-get --no-install-recommends install build-essential -y \
-    cmake g++ make git python3 python3.8-distutils \
+    cmake g++ make git python3 libpython3.8-dev python3.8-distutils \
     mpich libmpich-dev libboost-dev && \
     apt-get clean && mkdir -p ${dependencies}
 
