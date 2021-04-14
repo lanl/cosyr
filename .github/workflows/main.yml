@@ -14,7 +14,7 @@ jobs:
 
       - name: "create volume and build cosyr"
         run: |
-          docker run -v "$(pwd):/home/cosyr" -it hobywan/cosyr /bin/bash -c
+          docker run -v "$(pwd):/home/cosyr" hobywan/cosyr /bin/bash -c \
             "cd /home/cosyr && mkdir build && cd build && \
             cmake -Wno-dev \
               -DCMAKE_BUILD_TYPE=Release \
