@@ -24,4 +24,7 @@ jobs:
               -Dpybind11_DIR=/home/dependencies/pybind \
               -DCabana_DIR=/home/dependencies/cabana \
               .. && \
-            make -j 4"
+            make -j 4 && \
+            export PYTHONPATH=/home/cosyr && \
+            export OMP_PROC_BIND=close and OMP_PLACES=cores && \
+            mpiexec -np 1 ./cosyr /home/cosyr/input/test_beam_g10_l200.py"
