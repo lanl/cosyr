@@ -1,0 +1,27 @@
+name: testing
+
+on:
+  [push, pull_request]
+
+jobs:
+  build:
+    name: "compilation"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: "pull docker image"
+        run: docker pull hobywan/cosyr:latest
+
+      - name: "create volume and build cosyr"
+        run: |
+          docker run -v "$(pwd):/home/cosyr" -it hobywan/cosyr /bin/bash -c
+            "cd /home/cosyr && mkdir build && cd build && \
+            cmake -Wno-dev \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DENABLE_TCMALLOC=False \
+              -DPORTAGE_DIR=/home/dependencies/portage \
+              -DKokkos_DIR=/home/dependencies/kokkos \
+              -Dpybind11_DIR=/home/dependencies/pybind \
+              -DCabana_DIR=/home/dependencies/cabana \
+              .. && \
+            make -j 4"
