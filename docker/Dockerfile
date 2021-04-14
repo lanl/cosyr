@@ -1,19 +1,17 @@
+
+# ------------------------------------------------------------------------------
 FROM ubuntu AS build
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ="America/Denver"
-
-USER root
+ARG downloads="/home/downloads"
+ARG dependencies="/home/dependencies"
 
 RUN apt-get update && \
-    apt-get --no-install-recommends install build-essential -y cmake \
-    g++ make git ssh-client python3 mpich libmpich-dev \
-    python3.8-distutils libboost-dev && \
-    apt-get clean
-
-ARG dev="/home/dev"
-ARG dependencies="/home/dependencies"
-RUN mkdir -p ${dependencies}
+    apt-get --no-install-recommends install build-essential -y \
+    cmake g++ make git ssh-client python3 python3.8-distutils \
+    mpich libmpich-dev libboost-dev && \
+    apt-get clean && mkdir -p ${dependencies}
 
 # setup SSH
 # - create the .ssh directory.
@@ -27,14 +25,8 @@ RUN mkdir -p /root/.ssh/ && \
     chmod -R 600 /root/.ssh/ && \
     ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
 
-# copy project files
-ARG cosyr="/home/cosyr"
-RUN mkdir -p ${cosyr}
-COPY . ${cosyr}
-RUN ls -l ${cosyr}
-
 # install kokkos
-WORKDIR ${dev}
+WORKDIR ${downloads}
 RUN git clone git@github.com:kokkos/kokkos.git && \
     cd kokkos && \
     mkdir build && \
@@ -50,7 +42,7 @@ RUN git clone git@github.com:kokkos/kokkos.git && \
     make install
 
 # install cabana
-WORKDIR ${dev}
+WORKDIR ${downloads}
 RUN git clone git@github.com:ECP-copa/Cabana.git cabana && \
     cd cabana && \
     mkdir build && \
@@ -70,7 +62,7 @@ RUN git clone git@github.com:ECP-copa/Cabana.git cabana && \
     make install
 
 # install pybind
-WORKDIR ${dev}
+WORKDIR ${downloads}
 RUN git clone git@github.com:pybind/pybind11.git pybind && \
     cd pybind && \
     mkdir build && \
@@ -85,11 +77,11 @@ RUN git clone git@github.com:pybind/pybind11.git pybind && \
     make install
 
 # install thrust
-WORKDIR ${dev}
+WORKDIR ${downloads}
 RUN git clone git@github.com:NVIDIA/thrust.git "${dependencies}/thrust"
 
 # install wonton
-WORKDIR ${dev}
+WORKDIR ${downloads}
 RUN git clone --recursive git@github.com:laristra/wonton.git && \
     cd wonton && \
     git checkout 1.2.11 && \
@@ -107,8 +99,8 @@ RUN git clone --recursive git@github.com:laristra/wonton.git && \
     make -j 4 && \
     make install
 
-# install portage
-WORKDIR ${dev}
+# install portage and remove SSH keys
+WORKDIR ${downloads}
 RUN git clone --recursive git@github.com:laristra/portage.git && \
     cd portage && \
     mkdir build && \
@@ -125,13 +117,14 @@ RUN git clone --recursive git@github.com:laristra/portage.git && \
       -DWONTON_ROOT="${dependencies}/wonton" \
       .. && \
     make -j 4 && \
-    make install
+    make install && \
+    rm -rf /root/.ssh/
 
+# ------------------------------------------------------------------------------
 FROM ubuntu AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ="America/Denver"
-
 ARG dependencies="/home/dependencies"
 
 RUN apt-get update && \
@@ -143,4 +136,5 @@ RUN apt-get update && \
 COPY --from=build "${dependencies}" "${dependencies}"
 RUN ls -l "${dependencies}"
 
+# ------------------------------------------------------------------------------
 ENTRYPOINT ["server"]
