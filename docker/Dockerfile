@@ -124,6 +124,8 @@ RUN git clone --recursive git@github.com:laristra/portage.git && \
 # ------------------------------------------------------------------------------
 FROM ubuntu AS runtime
 
+LABEL maintainer="Hoby Rakotoarivelo"
+
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ="America/Denver"
 ARG dependencies="/home/dependencies"
