@@ -17,8 +17,8 @@ cmake -Wno-dev \
   -DKokkos_ENABLE_TESTS=Off \
   -DKokkos_ENABLE_SERIAL=On \
   -DKokkos_ENABLE_OPENMP=On \
-  -DKokkos_ENABLE_CUDA=Off \
-  -DKokkos_ARCH_KNL=On \
+  -DKokkos_ENABLE_CUDA=[On|Off] \
+  -DKokkos_ARCH_KNL=[On|Off] \
   ..
 make -j 8
 make install
@@ -79,8 +79,6 @@ git clone git@github.com:NVIDIA/thrust.git "${dependencies}/thrust"
 ```bash
 git clone git@github.com:Reference-LAPACK/lapack-release.git lapack
 cd lapack
-# need manual tweak for intel compiler
-# see: https://github.com/Reference-LAPACK/lapack/issues/228
 mkdir build
 cd build
 
