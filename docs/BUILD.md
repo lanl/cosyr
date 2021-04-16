@@ -99,6 +99,7 @@ cd ../..
 ```bash
 git clone --recursive git@github.com:laristra/wonton.git
 cd wonton
+git checkout 1.2.11
 mkdir build
 cd build
 
@@ -123,6 +124,7 @@ cd ../..
 ```bash
 git clone --recursive git@github.com:laristra/portage.git
 cd portage
+git checkout 3.0.0
 mkdir build
 cd build
 
