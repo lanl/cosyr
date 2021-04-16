@@ -85,7 +85,6 @@ RUN git clone git@github.com:NVIDIA/thrust.git "${dependencies}/thrust"
 WORKDIR ${downloads}
 RUN git clone --recursive git@github.com:laristra/wonton.git && \
     cd wonton && \
-    git checkout 1.2.11 && \
     mkdir build && \
     cd build && \
     cmake -Wno-dev \
