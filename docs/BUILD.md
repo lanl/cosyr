@@ -192,7 +192,7 @@ To verify that it runs fine:
 export PYTHONPATH="/path/to/cosyr" \
        OMP_PROC_BIND=close \
        OMP_PLACES=cores
-mpiexec -np 1 ./cosyr /home/cosyr/input/test_beam_g10_l200.py       
+mpiexec -np 1 ./cosyr /path/to/cosyr/input/test_beam_g10_l200.py
 ```
 
 A set of Jupyter [notebooks](../analysis) are available for post-processing.
