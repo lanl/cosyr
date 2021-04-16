@@ -58,7 +58,7 @@ wget https://www.python.org/ftp/python/3.8.5/Python-3.8.5.tgz
 tar xzvf Python-3.8.5.tgz
 find . -type d | xargs chmod 0755
 cd Python-${VERSION}
-./configure --prefix=“/path/to/python/install" \
+./configure --prefix="/path/to/python/install" \
             --enable-shared \
             --enable-optimizations
 make -j install
