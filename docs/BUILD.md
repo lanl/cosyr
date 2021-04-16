@@ -172,6 +172,7 @@ cd ../..
 ###### Cosyr
 
 ```bash
+cd "/path/to/cosyr"
 mkdir build
 cd build
 
@@ -183,6 +184,15 @@ cmake -Wno-dev \
   -DCabana_DIR="${dependencies}/cabana" \
   ..
 make -j 8  
+```
+
+To verify that it runs fine:
+
+```bash
+export PYTHONPATH="/path/to/cosyr" \
+       OMP_PROC_BIND=close \
+       OMP_PLACES=cores
+mpiexec -np 1 ./cosyr /home/cosyr/input/test_beam_g10_l200.py       
 ```
 
 A set of Jupyter [notebooks](../analysis) are available for post-processing.
