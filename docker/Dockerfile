@@ -138,5 +138,9 @@ RUN apt-get update && \
 
 COPY --from=build "${dependencies}" "${dependencies}"
 RUN python3 --version
-RUN pip3 install numpy matplotlib mpi4py
+RUN pip3 install \
+    --trusted-host files.pythonhosted.org \
+    --trusted-host pypi.org \
+    --trusted-host pypi.python.org \
+    numpy matplotlib mpi4py
 RUN ls -l "${dependencies}"
