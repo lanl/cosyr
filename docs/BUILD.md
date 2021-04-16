@@ -49,6 +49,31 @@ make install
 cd ../..
 ```
 
+###### Python
+```bash
+# install locally
+mkdir python
+cd python
+wget https://www.python.org/ftp/python/3.8.5/Python-3.8.5.tgz
+tar xzvf Python-3.8.5.tgz
+find . -type d | xargs chmod 0755
+cd Python-${VERSION}
+./configure --prefix=“/path/to/python/install" \
+            --enable-shared \
+            --enable-optimizations
+make -j install
+
+# packages
+wget --no-check-certificate https://bootstrap.pypa.io/get-pip.py -O - | python3 - --user
+pip3 install wheel numpy matplotlib mpi4py
+
+# in ~/.bashrc
+export PATH=/path/to/python/install/bin:~/.local/bin:${PATH}
+export PYTHONPATH="/path/to/python/install"
+export LD_LIBRARY_PATH="${PYTHONPATH}/lib":${LD_LIBRARY_PATH}
+export PYTHON_LD_LIBRARY_PATH="${PYTHONPATH}/lib"
+```
+
 ###### Pybind
 
 ```bash
