@@ -95,7 +95,7 @@ public:
     /** its position */
     double coords[DIM] = {0};
     /** its moments */
-    double moment[DIM] = {0};
+    double momentum[DIM] = {0};
   } reference;
 
   /**
@@ -151,7 +151,7 @@ private:
    * @brief Create beam from a specified one.
    *
    * @param count: number of particles.
-   * @param beam: coordinates and moments of each particle.
+   * @param beam: coordinates and momenta of each particle.
    */
   void copy(int count, const double* beam);
 
@@ -162,15 +162,15 @@ private:
    * @param x: position of current particle.
    * @param traject: trajectory type.
    * @param motion_params: electron motion parameters
-   * @param momenta: the computed moments.
+   * @param momenta: the computed momenta.
    * @param gamma_e: lorentz factor.
    */
-  void calculate_moment(double time,
-                        double x,
-                        Traject traject,
-                        const double* motion_params,
-                        double* momenta,
-                        double* gamma_e) const;
+  void calculate_momenta(double time,
+                         double x,
+                         Traject traject,
+                         const double* motion_params,
+                         double* momenta,
+                         double* gamma_e) const;
 
   /**
    * @brief Reference to simulation parameters.

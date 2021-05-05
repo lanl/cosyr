@@ -45,7 +45,7 @@
 
 namespace cosyr {
 
-#define COSYR_VER "0.1.0"
+#define COSYR_VER "0.1.1"
 
 // physics constants in cgs unit
 #define ELECTRON_CHARGE 4.80320427e-10     // Fr

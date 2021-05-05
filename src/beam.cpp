@@ -69,11 +69,11 @@ void Beam::move_reference(int index_particle,
 #endif
 
   // velocity update: v_{0} -> v_{1}
-  calculate_moment(t, new_x, traject, motion_params, momenta, &gamma);
+  calculate_momenta(t, new_x, traject, motion_params, momenta, &gamma);
   momentum(index_particle, PART_MOM_X) = momenta[0];
   momentum(index_particle, PART_MOM_Y) = momenta[1];
-  reference.moment[0] = momenta[0];
-  reference.moment[1] = momenta[1];
+  reference.momentum[0] = momenta[0];
+  reference.momentum[1] = momenta[1];
 
   lorentz(index_particle) = gamma;
   double new_vx = momenta[0] / gamma;
@@ -81,7 +81,7 @@ void Beam::move_reference(int index_particle,
 
 #if DIM==3
   momentum(index_particle, PART_MOM_Z) = momenta[2];
-  reference.moment[2] = momenta[2];
+  reference.momentum[2] = momenta[2];
   double new_vz = momenta[2] / gamma;
 #endif
 
@@ -428,19 +428,19 @@ void Beam::copy(int count, const double* beam) {
   auto copy_beam = KOKKOS_LAMBDA(int index_particle) {
 
     int const index_coords = index_particle * NUM_PARTICLE_QUANTITIES;
-    int const index_moment = index_coords + DIM;
+    int const index_momentum = index_coords + DIM;
 
     position(index_particle, PART_POS_X) = beam[index_coords];     // - r0[0];
     position(index_particle, PART_POS_Y) = beam[index_coords + 1]; // - r0[1];
-    momentum(index_particle, PART_MOM_X) = beam[index_moment];
-    momentum(index_particle, PART_MOM_Y) = beam[index_moment + 1];
-    double psq = beam[index_moment] * beam[index_moment]
-                 + beam[index_moment + 1] * beam[index_moment + 1];
+    momentum(index_particle, PART_MOM_X) = beam[index_momentum];
+    momentum(index_particle, PART_MOM_Y) = beam[index_momentum + 1];
+    double psq = beam[index_momentum] * beam[index_momentum]
+                 + beam[index_momentum + 1] * beam[index_momentum + 1];
 
 #if DIM==3
     position(j, PART_POS_Z) = beam[index_coords + 2] - r0[2];
-      momentum(j, PART_MOM_Z) = beam[index_moment + 2];
-      psq += beam[index_moment + 2] * beam[index_moment + 2];
+      momentum(j, PART_MOM_Z) = beam[index_momentum + 2];
+      psq += beam[index_momentum + 2] * beam[index_momentum + 2];
 #endif
 
     gamma(index_particle) = std::sqrt(1.0 + psq);
@@ -451,7 +451,7 @@ void Beam::copy(int count, const double* beam) {
   auto project_copy_beam = KOKKOS_LAMBDA(int index_particle) {
 
     int const index_coords = index_particle * NUM_PARTICLE_QUANTITIES;
-    int const index_moment = index_coords + DIM;
+    int const index_momentum = index_coords + DIM;
 
     // project particle position and momentum
     // A//B = dot(A,B)/|B|, A \perp B = A - A//B
@@ -464,7 +464,7 @@ void Beam::copy(int count, const double* beam) {
 
     for (int i=0; i < DIM; i++) {
       offset[i] = beam[index_coords + i] - r0[i];
-      double p_i = beam[index_moment + i];
+      double p_i = beam[index_momentum + i];
       psq += p_i * p_i;
       r_dot_p0 += offset[i] * p0_unit[i];
       p_dot_p0 += p_i * p0_unit[i];
@@ -480,7 +480,7 @@ void Beam::copy(int count, const double* beam) {
 
 #if DIM==3
     position(j, PART_POS_Z) = offset[2];
-      momentum(j, PART_MOM_Z) = beam[index_moment + 2];
+      momentum(j, PART_MOM_Z) = beam[index_momentum + 2];
 #endif
   };
 
@@ -504,12 +504,12 @@ void Beam::copy(int count, const double* beam) {
 }
 
 /* -------------------------------------------------------------------------- */
-void Beam::calculate_moment(double time,
-                            double x,
-                            Traject traject,
-                            const double* motion_params,
-                            double* momenta,
-                            double* gamma_e) const {
+void Beam::calculate_momenta(double time,
+                             double x,
+                             Traject traject,
+                             const double* motion_params,
+                             double* momenta,
+                             double* gamma_e) const {
 
   *gamma_e = motion_params[0];
   double const beta = std::sqrt(1.0 - std::pow(*gamma_e, -2.0));

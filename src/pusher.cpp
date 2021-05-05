@@ -23,7 +23,7 @@ void Pusher::move(int step, double t) {
   auto motion_params = input.kernel.motion_params;
 
   beam.move_reference(0, mesh, trajectory, motion_params, step, t, dt);
-  mesh.move(beam.reference.coords, beam.reference.moment);
+  mesh.move(beam.reference.coords, beam.reference.momentum);
   beam.move_others(mesh, motion_params, step, dt, t);
 
   MPI_Barrier(input.mpi.comm);
