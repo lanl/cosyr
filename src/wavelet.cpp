@@ -56,9 +56,14 @@ void Wavelets::import_and_transfer() {
           loaded.host.coords(k, WT_POS_Z) = input.wavelets.z[j];
         #endif
 
-        for (int f = 0; f < num_fields; ++f) {
+        for (int f = 0; f < input.wavelets.num_fields; ++f) {
           int const offset = (f * input.wavelets.count);
           loaded.host.fields[f](k) = input.wavelets.field[j + offset];
+        }
+
+        // if wavelet field components not provided, set to 0
+        for (int f = input.wavelets.num_fields; f < num_fields; ++f) {
+          loaded.host.fields[f](k) = 0.0;
         }
       }
       timer.stop("import_wavelet");
