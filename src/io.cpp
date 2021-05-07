@@ -33,13 +33,14 @@ void IO::dump(int i) {
                      and ((i - input.remap.start_step) % input.remap.interval == 0
                        or i == input.kernel.num_step - 1));
 
+//  #define DEBUG
   #ifdef DEBUG
     std::cout << input.mpi.rank
               << ": step = " << i <<", write_wavelets ? "
               << std::boolalpha << write_wavelets << std::endl;
   #endif
 
-  if (interpolate and write_wavelets) {
+  if (write_wavelets) {
     timer.start("write_wavelet");
     dump_wavelets(i);
     timer.stop("write_wavelet");
@@ -47,6 +48,12 @@ void IO::dump(int i) {
 
   #ifdef DEBUG
     std::cout << input.mpi.rank << ": finished dumping wavelets" << std::endl;
+  #endif
+
+  #ifdef DEBUG
+    std::cout << input.mpi.rank
+              << ": step = " << i <<", write_beam ? "
+              << std::boolalpha << write_beam << std::endl;
   #endif
 
   if (write_beam) {
@@ -70,6 +77,11 @@ void IO::dump(int i) {
 
 /* -------------------------------------------------------------------------- */
 void IO::dump_wavelets(int step) const {
+
+    #ifdef DEBUG
+      std::cout << input.mpi.rank
+                << ": " << " enter dump_wavelets." << std::endl;
+    #endif
 
   if (input.mpi.rank == 0) { std::cout << "dump wavelets ... " << std::flush; }
 
@@ -122,6 +134,11 @@ void IO::dump_wavelets(int step) const {
 
     file.close();
 
+    #ifdef DEBUG
+      std::cout << input.mpi.rank
+                << ": " << num_loaded + num_emitted << " wavelets written." << std::endl;
+    #endif
+
     // Write the particle trajectory into file
     file.open(trajectory_file);
 
@@ -129,7 +146,7 @@ void IO::dump_wavelets(int step) const {
       file << "# traj_x, traj_y" << "\n";
 
       int const start_traject = index_particle * input.kernel.num_step;
-      int const extent_traject = start_traject + input.kernel.num_step;
+      int const extent_traject = start_traject + step + 1;
 
       for (int j = start_traject; j < extent_traject; j++) {
         int const k = j * NUM_TRAJ_QUANTITIES;
