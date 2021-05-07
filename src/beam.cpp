@@ -269,7 +269,8 @@ void Beam::move_others(Mesh const& mesh,
     double haz = qmhdt * 0.0;
     double bx = 0.0;
     double by = 0.0;
-    bz += bz0;
+    //bz += bz0;
+    bz = (new_x > 0.0) ? bz0 : 0.0;
 
     // momentum update (Boris): u_{0} -> u_{1}
     // first electric half push
@@ -528,7 +529,8 @@ void Beam::calculate_momenta(double time,
       double const radius = motion_params[1];
       double const theta_0 = beta * time;
 
-      if (time >= 0) {
+      //if (time >= 0) {
+      if (x >= 0) {
         momenta[0] =  p * std::cos(theta_0);
         momenta[1] = -p * std::sin(theta_0);
 #ifdef DEBUG
