@@ -53,6 +53,13 @@ int main(int argc, char* argv[]) {
       }
 
       timer.start("kernel");
+      int num_active_wavefront = pusher.num_active_emission;
+#define DEBUG
+#ifdef DEBUG
+      if (input.mpi.rank == 0) {
+        std::cout << "active wavefronts = " << num_active_wavefront << "\n" << std::flush;
+      }
+#endif
 
       // field calculation for wavelet emitted at t=(i+1/2)*dt and mesh at t=(i+1)*dt
       // sin/cos limits set by the four mesh boundaries
@@ -75,11 +82,11 @@ int main(int argc, char* argv[]) {
                                        input.wavelets.found and input.wavelets.subcycle);
 
         // loop over wavefronts from most recent one (not current one) to oldest one
-        for (int iw = i-1; iw >= 0; iw--) {
+        for (int iw = num_active_wavefront-1; iw >= 0; iw--) {
 
           int const index_wavefront = index_particle * input.kernel.num_wavefronts;
           int const index_emit_wave = (index_wavefront + iw) * NUM_EMT_QUANTITIES;
-          int const index_wavelet   = (index_wavefront + i - iw) * input.kernel.num_dirs;
+          int const index_wavelet   = (index_wavefront + num_active_wavefront - iw) * input.kernel.num_dirs;
 
           double const dt_emit = t - beam.emit_info(index_emit_wave + EMT_TIME); // time since emission
 
