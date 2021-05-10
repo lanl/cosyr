@@ -36,7 +36,12 @@ public:
    * @param step: current step.
    * @return true if skipped, false otherwise.
    */
-  bool skip_emission(int step) const;
+  bool skip_emission(int step);
+
+  /**
+   * @brief number of active emissions .
+   */
+  int num_active_emission;
 
 private:
   /**

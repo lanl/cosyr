@@ -76,11 +76,15 @@ void Pusher::update_emission_info(int step) {
 }
 
 /* -------------------------------------------------------------------------- */
-bool Pusher::skip_emission(int step) const {
+bool Pusher::skip_emission(int step) {
   int const emission_start_step = input.kernel.emission_start_step;
   int const emission_interval = input.kernel.emission_interval;
   int const emission_step = step - emission_start_step;
-  return (step < emission_start_step or (emission_step % emission_interval) != 0);
+  num_active_emission = int(floor(emission_step/emission_interval)) + 1;
+  if (num_active_emission > input.kernel.num_wavefronts and input.mpi.rank == 0) { 
+     std::cout << "num_wavefronts exceeded, emission skipped at step " << step << "\n" << std::flush; 
+  }
+  return (step < emission_start_step or (emission_step % emission_interval) != 0 or num_active_emission > input.kernel.num_wavefronts);
 }
 
 /* -------------------------------------------------------------------------- */
