@@ -20,7 +20,6 @@ void IO::dump_wavelets(int step) const {
 
   bool write_wavelets = input.wavelets.output and step >= input.wavelets.dump_start
                         and ((step - input.wavelets.dump_start) % input.wavelets.dump_interval == 0);
-//#define DEBUG
 #ifdef DEBUG
   std::cout << input.mpi.rank << ": step = " << step
             <<", write_wavelets ? " << std::boolalpha << write_wavelets << std::endl;
