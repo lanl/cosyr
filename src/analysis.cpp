@@ -11,12 +11,7 @@ Analysis::Analysis(Input const& input)
     field_scale(input.analysis.field_scale),
     file_exact(input.analysis.file_exact),
     file_error(input.analysis.file_error)
-  {
-    assert(input.analysis.shift != nullptr);
-    assert(input.analysis.scale != nullptr);
-    // wavelets should not be restricted to subcycling only
-    assert(not input.wavelets.subcycle);
-  }
+  {}
 
 /* -------------------------------------------------------------------------- */
 Wonton::vector<double> Analysis::eval(Wonton::Swarm<2> const& points,
