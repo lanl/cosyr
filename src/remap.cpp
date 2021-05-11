@@ -241,7 +241,7 @@ void Remap::interpolate(int step, double scaling) {
 
   bool use_loaded_only = input.wavelets.found and not input.wavelets.subcycle;
 
-  if (do_remap(step)) {
+  if (process(step)) {
 
     auto num_active = wavelets.transfer_to_host();
     bool accumulate = false;
@@ -288,16 +288,20 @@ void Remap::interpolate(int step, double scaling) {
 
     MPI_Barrier(input.mpi.comm);
     timer.stop("interpolation");
+
+    timer.start("mesh_sync");
+    mesh.sync();
+    timer.stop("mesh_sync");
   }
 }
 
 
 /* -------------------------------------------------------------------------- */
-bool Remap::do_remap(int step) {
+bool Remap::process(int step) {
 
   return ((step >= input.remap.start_step)
-                  and ((step - input.remap.start_step) % input.remap.interval == 0
-                    or step == input.kernel.num_step - 1));
+         and ((step - input.remap.start_step) % input.remap.interval == 0
+            or step == input.kernel.num_step - 1));
 }
 
 
