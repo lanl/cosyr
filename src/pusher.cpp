@@ -79,10 +79,10 @@ bool Pusher::skip_emission(int step) {
   bool const limit_exceeded = num_active_emission >= input.kernel.num_wavefronts;
 
   if (limit_exceeded) {
-#define DEBUG
 #ifdef DEBUG
     if (input.mpi.rank == 0) {
-      std::cout << "num_wavefronts exceeded, emission skipped at step " << step << std::endl;
+      std::cout << "warning: num_wavefronts exceeded, emission skipped at step ";
+      std::cout << step << std::endl;
     }
 #endif
     num_active_emission = input.kernel.num_wavefronts;

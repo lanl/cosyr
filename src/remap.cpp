@@ -327,7 +327,7 @@ void Remap::interpolate(int step, double scaling) {
 
 
 /* -------------------------------------------------------------------------- */
-bool Remap::process(int step) {
+bool Remap::process(int step) const {
 
   return ((step >= input.remap.start_step)
          and ((step - input.remap.start_step) % input.remap.interval == 0
@@ -341,12 +341,17 @@ void Remap::print_info(int count_active, int ratio_loaded) const {
   if (input.mpi.rank == 0) {
     if (ratio_loaded < 0 or ratio_loaded > 100) {
       throw std::runtime_error("invalid ratio of loaded wavelets");
-    } else if (ratio_loaded < 100) {
-      std::cout << "interpolate using "<< count_active << " active wavelets "
-                << "("<< ratio_loaded << "% prescribed) ... ";
     } else {
-      std::cout << "interpolate using " << count_active
-                << " loaded wavelets ... " << std::flush;
+      std::cout << "interpolate from " << input.kernel.num_particles << " particles, ";
+      if (ratio_loaded < 100) {
+        std::cout << count_active << " wavelets/particle";
+        if (ratio_loaded > 0) {
+          std::cout << "("<< ratio_loaded << "% prescribed)";
+        }
+      } else {
+        std::cout << count_active << " loaded wavelets";
+      }
+      std::cout << " ... " << std::flush;
     }
   }
 }
