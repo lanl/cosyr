@@ -31,8 +31,8 @@ if (mpi_rank==0) : print("npt_alpha={}, npt_chi={}".format(npt_alpha, npt_chi))
 num_wavefronts = 400               # number of wavefronts
 num_dirs = 400                     # number of field lines
 num_step = num_wavefronts          # number of steps (currently always equal to num_wavefronts)
-dt = psi_max/num_wavefronts  # time step in electron rest frame
-emission_interval = num_step-1     # only emit wavefronts at simulation end (test purpose)
+dt = psi_max/num_step              # time step in electron rest frame
+emission_interval = 1              # emission record interval  
 
 ## remap
 remap_interval = num_step-1        # interval of doing remapping (in time steps)

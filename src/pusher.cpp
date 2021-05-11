@@ -30,7 +30,6 @@ void Pusher::move(int step, double t) {
   MPI_Barrier(input.mpi.comm);
   timer.stop("push_particles");
 
-  //update_emission_info();
 }
 
 /* -------------------------------------------------------------------------- */
@@ -84,11 +83,21 @@ bool Pusher::skip_emission(int step) {
   num_active_emission = int(floor(emission_step/emission_interval));
   bool out_of_wavefront_storage = num_active_emission >= input.kernel.num_wavefronts;
   if (out_of_wavefront_storage) {
-     num_active_emission = input.kernel.num_wavefronts - 1;
+     num_active_emission = input.kernel.num_wavefronts;
+#define DEBUG
+#ifdef DEBUG     
      if (input.mpi.rank == 0) { 
      std::cout << "num_wavefronts exceeded, emission skipped at step " << step << "\n" << std::flush; 
      }
+#endif     
   }
+
+#ifdef DEBUG
+  if (input.mpi.rank == 0) {
+    std::cout << "step "<< step << ":active wavefronts = " << num_active_emission << "\n" << std::flush;
+  }
+#endif
+  
   return (step < emission_start_step or (emission_step % emission_interval) != 0 or out_of_wavefront_storage);
 }
 

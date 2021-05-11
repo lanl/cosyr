@@ -239,13 +239,9 @@ void Remap::run(bool accumulate, bool rescale, double scaling) {
 /* -------------------------------------------------------------------------- */
 void Remap::interpolate(int step, double scaling) {
 
-  bool do_remap = ((step >= input.remap.start_step)
-                  and ((step - input.remap.start_step) % input.remap.interval == 0
-                    or step == input.kernel.num_step - 1));
-
   bool use_loaded_only = input.wavelets.found and not input.wavelets.subcycle;
 
-  if (do_remap) {
+  if (do_remap(step)) {
 
     auto num_active = wavelets.transfer_to_host();
     bool accumulate = false;
@@ -294,6 +290,16 @@ void Remap::interpolate(int step, double scaling) {
     timer.stop("interpolation");
   }
 }
+
+
+/* -------------------------------------------------------------------------- */
+bool Remap::do_remap(int step) {
+
+  return ((step >= input.remap.start_step)
+                  and ((step - input.remap.start_step) % input.remap.interval == 0
+                    or step == input.kernel.num_step - 1));
+}
+
 
 /* -------------------------------------------------------------------------- */
 void Remap::print_info(int count_active, int ratio_loaded) const {

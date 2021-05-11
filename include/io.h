@@ -31,8 +31,9 @@ public:
    * @brief Dump simulation data to disk.
    *
    * @param i: current step.
+   * @param beam_only: flag for beam dump only.
    */
-  void dump(int i);
+  void dump(int i, bool beam_only);
 
 private:
   /**
