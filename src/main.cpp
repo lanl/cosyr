@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
       input.print_step(i, t);
       t = t + half_dt;
       pusher.move(i, t);
-      io.dump(i, true); // dump beam only
+      io.dump_beam(i);
 
       if (pusher.skip_emission(i)) {
         t = t + half_dt;
@@ -134,7 +134,8 @@ int main(int argc, char* argv[]) {
         remap.interpolate(i, std::abs(beam.q));
       }
 
-      io.dump(i, false); // dump mesh, wavelet, trajectory
+      io.dump_wavelets(i);
+      io.dump_mesh(i);
 
       t = t + half_dt;
     } // end each time step i
