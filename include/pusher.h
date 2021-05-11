@@ -31,6 +31,13 @@ public:
   void move(int step, double t);
 
   /**
+   * @brief Update wavefront emission quantities.
+   *
+   * @param step: current step.
+   */
+  void update_emission_info();
+
+  /**
    * @brief Whether to skip wavefront emission or not.
    *
    * @param step: current step.
@@ -44,12 +51,6 @@ public:
   int num_active_emission;
 
 private:
-  /**
-   * @brief Update wavefront emission quantities.
-   *
-   * @param step: current step.
-   */
-  void update_emission_info(int step);
 
   /**
    * @brief Reference to simulation parameters.
