@@ -52,14 +52,16 @@ int main(int argc, char* argv[]) {
         continue;
       }
 
-      timer.start("kernel");
+      pusher.update_emission_info();
       int num_active_wavefront = pusher.num_active_emission;
 #define DEBUG
 #ifdef DEBUG
       if (input.mpi.rank == 0) {
-        std::cout << "active wavefronts = " << num_active_wavefront << "\n" << std::flush;
+        std::cout << "step "<< i << ":active wavefronts = " << num_active_wavefront << "\n" << std::flush;
       }
 #endif
+
+      timer.start("kernel");
 
       // field calculation for wavelet emitted at t=(i+1/2)*dt and mesh at t=(i+1)*dt
       // sin/cos limits set by the four mesh boundaries
@@ -75,7 +77,7 @@ int main(int argc, char* argv[]) {
                                        input.wavelets.count,
                                        input.kernel.num_wavefronts,
                                        input.kernel.num_dirs,
-                                       i, index_particle,
+                                       num_active_wavefront, index_particle,
                                        mesh.center.cosin_angle[0],
                                        mesh.center.sinus_angle[0],
                                        input.kernel.radius,
@@ -127,7 +129,7 @@ int main(int argc, char* argv[]) {
                                           mesh.center.angle[0],
                                           mesh.center.cosin_angle[0],
                                           mesh.center.sinus_angle[0]);
-        } // end of iw
+        } // end of iw 
       });
 
       MPI_Barrier(input.mpi.comm);
