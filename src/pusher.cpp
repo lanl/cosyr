@@ -80,8 +80,9 @@ bool Pusher::skip_emission(int step) {
   int const emission_start_step = input.kernel.emission_start_step;
   int const emission_interval = input.kernel.emission_interval;
   int const emission_step = step - emission_start_step;
-  num_active_emission = int(floor(emission_step/emission_interval));
+  num_active_emission = std::max(0, int(floor(emission_step/emission_interval)));
   bool out_of_wavefront_storage = num_active_emission >= input.kernel.num_wavefronts;
+
   if (out_of_wavefront_storage) {
      num_active_emission = input.kernel.num_wavefronts;
 #define DEBUG
@@ -97,7 +98,7 @@ bool Pusher::skip_emission(int step) {
     std::cout << "step "<< step << ":active wavefronts = " << num_active_emission << "\n" << std::flush;
   }
 #endif
-  
+
   return (step < emission_start_step or (emission_step % emission_interval) != 0 or out_of_wavefront_storage);
 }
 
