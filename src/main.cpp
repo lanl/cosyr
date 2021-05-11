@@ -53,7 +53,6 @@ int main(int argc, char* argv[]) {
         continue;
       }
 
-      pusher.update_emission_info(); 
       int num_active_wavefront = pusher.num_active_emission; // note: does not include the current emission
 
       if (remap.do_remap(i)) {
