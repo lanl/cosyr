@@ -53,10 +53,11 @@ int main(int argc, char* argv[]) {
         continue;
       }
 
-      int num_active_wavefront = pusher.num_active_emission; // note: does not include the current emission
-
       if (remap.process(i)) {
         timer.start("kernel");
+
+        // note: does not include the current emission
+        int const num_active_wavefront = pusher.num_active_emission;
 
         // field calculation for wavelet emitted at t=(i+1/2)*dt and mesh at t=(i+1)*dt
         // sin/cos limits set by the four mesh boundaries
