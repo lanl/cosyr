@@ -16,7 +16,7 @@ IO::IO(Input& in_input,
 {}
 
 /* -------------------------------------------------------------------------- */
-void IO::dump(int i) {
+void IO::dump(int i, bool beam_only) {
 
   bool write_wavelets = input.wavelets.output and i >= input.wavelets.dump_start
                        and ((i - input.wavelets.dump_start) % input.wavelets.dump_interval == 0);
@@ -29,43 +29,36 @@ void IO::dump(int i) {
                    and (i >= input.mesh.dump_start)
                    and ((i - input.mesh.dump_start) % input.mesh.dump_interval == 0);
 
-  bool interpolate = ((i >= input.remap.start_step)
-                     and ((i - input.remap.start_step) % input.remap.interval == 0
-                       or i == input.kernel.num_step - 1));
-
 //  #define DEBUG
-  #ifdef DEBUG
-    std::cout << input.mpi.rank
-              << ": step = " << i <<", write_wavelets ? "
-              << std::boolalpha << write_wavelets << std::endl;
-  #endif
-
-  if (write_wavelets) {
-    timer.start("write_wavelet");
-    dump_wavelets(i);
-    timer.stop("write_wavelet");
-  }
-
-  #ifdef DEBUG
-    std::cout << input.mpi.rank << ": finished dumping wavelets" << std::endl;
-  #endif
-
-  #ifdef DEBUG
+  if (beam_only) {
+    #ifdef DEBUG
     std::cout << input.mpi.rank
               << ": step = " << i <<", write_beam ? "
               << std::boolalpha << write_beam << std::endl;
-  #endif
+    #endif
 
-  if (write_beam) {
-    timer.start("write_beam");
-    dump_particles(i);
-    timer.stop("write_beam");
-  }
+    if (write_beam) {
+      timer.start("write_beam");
+      dump_particles(i);
+      timer.stop("write_beam");
+    }
+  } else {  
 
-  if (interpolate) {
-    timer.start("mesh_sync");
-    mesh.sync();
-    timer.stop("mesh_sync");
+    #ifdef DEBUG
+      std::cout << input.mpi.rank
+                << ": step = " << i <<", write_wavelets ? "
+                << std::boolalpha << write_wavelets << std::endl;
+    #endif
+
+    if (write_wavelets) {
+      timer.start("write_wavelet");
+      dump_wavelets(i);
+      timer.stop("write_wavelet");
+    }
+
+    #ifdef DEBUG
+      std::cout << input.mpi.rank << ": finished dumping wavelets" << std::endl;
+    #endif
 
     if (write_mesh) {
       timer.start("write_mesh");

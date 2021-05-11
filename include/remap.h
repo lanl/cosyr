@@ -39,6 +39,12 @@ public:
    */
   void interpolate(int step, double scaling);
 
+  /**
+   * @brief Remap interval check.
+   *
+   */
+  bool do_remap(int step);
+
 private:
   /**
    * @brief Collect loaded wavelets for subcycling.

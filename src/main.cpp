@@ -46,97 +46,98 @@ int main(int argc, char* argv[]) {
       input.print_step(i, t);
       t = t + half_dt;
       pusher.move(i, t);
+      io.dump(i, true); // dump beam only
 
       if (pusher.skip_emission(i)) {
         t = t + half_dt;
         continue;
       }
 
-      pusher.update_emission_info();
-      int num_active_wavefront = pusher.num_active_emission;
-#define DEBUG
-#ifdef DEBUG
-      if (input.mpi.rank == 0) {
-        std::cout << "step "<< i << ":active wavefronts = " << num_active_wavefront << "\n" << std::flush;
+      pusher.update_emission_info(); 
+      int num_active_wavefront = pusher.num_active_emission; // note: does not include the current emission
+
+      if (remap.do_remap(i)) {
+        timer.start("kernel");
+
+        // field calculation for wavelet emitted at t=(i+1/2)*dt and mesh at t=(i+1)*dt
+        // sin/cos limits set by the four mesh boundaries
+        Kokkos::parallel_for(input.kernel.num_particles, KOKKOS_LAMBDA(int index_particle) {
+
+          cosyr::kernel::emit_wavefronts(beam.emit_info,
+                                        beam.emit_current,
+                                        wavelets.active,
+                                        wavelets.loaded.device.coords,
+                                        wavelets.loaded.device.fields,
+                                        wavelets.emitted.device.coords,
+                                        wavelets.emitted.device.fields,
+                                        input.wavelets.count,
+                                        input.kernel.num_wavefronts,
+                                        input.kernel.num_dirs,
+                                        num_active_wavefront, index_particle,
+                                        mesh.center.cosin_angle[0],
+                                        mesh.center.sinus_angle[0],
+                                        input.kernel.radius,
+                                        input.wavelets.found and input.wavelets.subcycle);
+
+          // loop over wavefronts from most recent one (not current one) to oldest one
+          for (int iw = num_active_wavefront-1; iw >= 0; iw--) {
+
+            int const index_wavefront = index_particle * input.kernel.num_wavefronts;
+            int const index_emit_wave = (index_wavefront + iw) * NUM_EMT_QUANTITIES;
+            int const index_wavelet   = (index_wavefront + num_active_wavefront - iw) * input.kernel.num_dirs;
+
+            double const dt_emit = t - beam.emit_info(index_emit_wave + EMT_TIME); // time since emission
+
+            // angle start and end (clock-wise) of each range.
+            double angle_range[4][2] = {{M_PI, -M_PI},
+                                        {M_PI, -M_PI},
+                                        {M_PI, -M_PI},
+                                        {M_PI, -M_PI}};
+
+            double angle_running_sum[5] = {0, 0, 0, 0, 0};
+
+            int range_count = cosyr::kernel::intersect_wavefronts_mesh(beam.emit_info,
+                                                                      index_emit_wave,
+                                                                      dt_emit,
+                                                                      mesh.half_width[0],
+                                                                      mesh.half_width[1],
+                                                                      mesh.center.cosin_angle[0],
+                                                                      mesh.center.sinus_angle[0],
+                                                                      input.kernel.radius,
+                                                                      angle_range,
+                                                                      angle_running_sum);
+
+            cosyr::kernel::calculate_fields(beam.emit_info,
+                                            wavelets.active,
+                                            wavelets.emitted.device.coords,
+                                            wavelets.emitted.device.fields,
+                                            index_particle,
+                                            index_wavelet,
+                                            index_emit_wave,
+                                            dt_emit, q,
+                                            input.kernel.min_emit_angle,
+                                            input.kernel.num_dirs,
+                                            range_count,
+                                            angle_range,
+                                            angle_running_sum,
+                                            mesh.center.position[0],
+                                            mesh.center.position[1],
+                                            mesh.center.angle[0],
+                                            mesh.center.cosin_angle[0],
+                                            mesh.center.sinus_angle[0]);
+          } // end of iw 
+        });
+
+        MPI_Barrier(input.mpi.comm);
+        timer.stop("kernel");
+
+        remap.interpolate(i, std::abs(beam.q));
+        timer.start("mesh_sync");
+        mesh.sync();
+        timer.stop("mesh_sync");
       }
-#endif
 
-      timer.start("kernel");
-
-      // field calculation for wavelet emitted at t=(i+1/2)*dt and mesh at t=(i+1)*dt
-      // sin/cos limits set by the four mesh boundaries
-      Kokkos::parallel_for(input.kernel.num_particles, KOKKOS_LAMBDA(int index_particle) {
-
-        cosyr::kernel::emit_wavefronts(beam.emit_info,
-                                       beam.emit_current,
-                                       wavelets.active,
-                                       wavelets.loaded.device.coords,
-                                       wavelets.loaded.device.fields,
-                                       wavelets.emitted.device.coords,
-                                       wavelets.emitted.device.fields,
-                                       input.wavelets.count,
-                                       input.kernel.num_wavefronts,
-                                       input.kernel.num_dirs,
-                                       num_active_wavefront, index_particle,
-                                       mesh.center.cosin_angle[0],
-                                       mesh.center.sinus_angle[0],
-                                       input.kernel.radius,
-                                       input.wavelets.found and input.wavelets.subcycle);
-
-        // loop over wavefronts from most recent one (not current one) to oldest one
-        for (int iw = num_active_wavefront-1; iw >= 0; iw--) {
-
-          int const index_wavefront = index_particle * input.kernel.num_wavefronts;
-          int const index_emit_wave = (index_wavefront + iw) * NUM_EMT_QUANTITIES;
-          int const index_wavelet   = (index_wavefront + num_active_wavefront - iw) * input.kernel.num_dirs;
-
-          double const dt_emit = t - beam.emit_info(index_emit_wave + EMT_TIME); // time since emission
-
-          // angle start and end (clock-wise) of each range.
-          double angle_range[4][2] = {{M_PI, -M_PI},
-                                      {M_PI, -M_PI},
-                                      {M_PI, -M_PI},
-                                      {M_PI, -M_PI}};
-
-          double angle_running_sum[5] = {0, 0, 0, 0, 0};
-
-          int range_count = cosyr::kernel::intersect_wavefronts_mesh(beam.emit_info,
-                                                                     index_emit_wave,
-                                                                     dt_emit,
-                                                                     mesh.half_width[0],
-                                                                     mesh.half_width[1],
-                                                                     mesh.center.cosin_angle[0],
-                                                                     mesh.center.sinus_angle[0],
-                                                                     input.kernel.radius,
-                                                                     angle_range,
-                                                                     angle_running_sum);
-
-          cosyr::kernel::calculate_fields(beam.emit_info,
-                                          wavelets.active,
-                                          wavelets.emitted.device.coords,
-                                          wavelets.emitted.device.fields,
-                                          index_particle,
-                                          index_wavelet,
-                                          index_emit_wave,
-                                          dt_emit, q,
-                                          input.kernel.min_emit_angle,
-                                          input.kernel.num_dirs,
-                                          range_count,
-                                          angle_range,
-                                          angle_running_sum,
-                                          mesh.center.position[0],
-                                          mesh.center.position[1],
-                                          mesh.center.angle[0],
-                                          mesh.center.cosin_angle[0],
-                                          mesh.center.sinus_angle[0]);
-        } // end of iw 
-      });
-
-      MPI_Barrier(input.mpi.comm);
-      timer.stop("kernel");
-
-      remap.interpolate(i, std::abs(beam.q));
-      io.dump(i);
+      io.dump(i, false); // dump mesh, wavelet, trajectory
 
       t = t + half_dt;
     } // end each time step i
