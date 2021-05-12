@@ -62,12 +62,6 @@ void Pusher::update_emission_info() {
     beam.emit_info[new_index + EMT_ACC_X] = beam.emit_current[old_index + EMT_ACC_X];
     beam.emit_info[new_index + EMT_ACC_Y] = beam.emit_current[old_index + EMT_ACC_Y];
     beam.emit_info[new_index + EMT_GAMMA] = beam.emit_current[old_index + EMT_GAMMA];
-
-//    if (step == 98) {
-//      std::cout << "beam.current["<< old_index <<"]: x = "
-//                << beam.emit_current[old_index + EMT_POS_X]
-//                << ", y = " << beam.emit_current[old_index + EMT_POS_X] << ")" << std::endl;
-//    }
   });
 
   MPI_Barrier(input.mpi.comm);
@@ -77,29 +71,36 @@ void Pusher::update_emission_info() {
 
 /* -------------------------------------------------------------------------- */
 bool Pusher::skip_emission(int step) {
+
   int const emission_start_step = input.kernel.emission_start_step;
   int const emission_interval = input.kernel.emission_interval;
   int const emission_step = step - emission_start_step;
-  num_active_emission = std::max(0, int(floor(emission_step/emission_interval)));
-  bool out_of_wavefront_storage = num_active_emission >= input.kernel.num_wavefronts;
+  num_active_emission = std::max(0, int(std::floor(emission_step / emission_interval)));
+  bool const limit_exceeded = num_active_emission >= input.kernel.num_wavefronts;
 
-  if (out_of_wavefront_storage) {
-     num_active_emission = input.kernel.num_wavefronts;
-#define DEBUG
-#ifdef DEBUG     
-     if (input.mpi.rank == 0) { 
-     std::cout << "num_wavefronts exceeded, emission skipped at step " << step << "\n" << std::flush; 
-     }
-#endif     
-  }
-
+  if (limit_exceeded) {
 #ifdef DEBUG
-  if (input.mpi.rank == 0) {
-    std::cout << "step "<< step << ":active wavefronts = " << num_active_emission << "\n" << std::flush;
-  }
+    if (input.mpi.rank == 0) {
+      std::cout << "warning: num_wavefronts exceeded, emission skipped at step ";
+      std::cout << step << std::endl;
+    }
+#endif
+    num_active_emission = input.kernel.num_wavefronts;
+    return true;
+  } else {
+#ifdef DEBUG
+    if (input.mpi.rank == 0) {
+      std::cout << "step " << step << ": active wavefronts = " << num_active_emission << std::endl;
+    }
 #endif
 
-  return (step < emission_start_step or (emission_step % emission_interval) != 0 or out_of_wavefront_storage);
+    if (step < emission_start_step or (emission_step % emission_interval) != 0) {
+      return true;
+    } else {
+      update_emission_info();
+      return false;
+    }
+  }
 }
 
 /* -------------------------------------------------------------------------- */

@@ -46,18 +46,18 @@ int main(int argc, char* argv[]) {
       input.print_step(i, t);
       t = t + half_dt;
       pusher.move(i, t);
-      io.dump(i, true); // dump beam only
+      io.dump_beam(i);
 
       if (pusher.skip_emission(i)) {
         t = t + half_dt;
         continue;
       }
 
-      pusher.update_emission_info(); 
-      int num_active_wavefront = pusher.num_active_emission; // note: does not include the current emission
-
-      if (remap.do_remap(i)) {
+      if (remap.process(i)) {
         timer.start("kernel");
+
+        // note: does not include the current emission
+        int const num_active_wavefront = pusher.num_active_emission;
 
         // field calculation for wavelet emitted at t=(i+1/2)*dt and mesh at t=(i+1)*dt
         // sin/cos limits set by the four mesh boundaries
@@ -132,12 +132,10 @@ int main(int argc, char* argv[]) {
         timer.stop("kernel");
 
         remap.interpolate(i, std::abs(beam.q));
-        timer.start("mesh_sync");
-        mesh.sync();
-        timer.stop("mesh_sync");
       }
 
-      io.dump(i, false); // dump mesh, wavelet, trajectory
+      io.dump_wavelets(i);
+      io.dump_mesh(i);
 
       t = t + half_dt;
     } // end each time step i

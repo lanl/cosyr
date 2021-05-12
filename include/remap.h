@@ -39,10 +39,12 @@ public:
   void interpolate(int step, double scaling);
 
   /**
-   * @brief Remap interval check.
+   * @brief Check whether to remap for current step or not.
    *
+   * @param step: current time step
+   * @return true if so, false otherwise.
    */
-  bool do_remap(int step);
+  bool process(int step) const;
 
 private:
   /**

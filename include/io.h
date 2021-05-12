@@ -28,14 +28,12 @@ public:
   ~IO() = default;
 
   /**
-   * @brief Dump simulation data to disk.
+   * @brief Dump beam data into disk.
    *
-   * @param i: current step.
-   * @param beam_only: flag for beam dump only.
+   * @param step: current step.
    */
-  void dump(int i, bool beam_only);
+  void dump_beam(int step) const;
 
-private:
   /**
    * @brief Dump wavelets data into disk.
    *
@@ -44,19 +42,13 @@ private:
   void dump_wavelets(int step) const;
 
   /**
-   * @brief Dump particles data into disk.
-   *
-   * @param step: current step.
-   */
-  void dump_particles(int step) const;
-
-  /**
    * @brief Dump mesh data into disk.
    *
    * @param step: current step.
    */
   void dump_mesh(int step) const;
 
+private:
   /**
    * @brief Reference to simulation parameters.
    *
