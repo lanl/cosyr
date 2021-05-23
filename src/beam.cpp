@@ -62,6 +62,13 @@ void Beam::move_reference(int index_particle,
   reference.coords[0] = new_x;
   reference.coords[1] = new_y;
 
+//#define DEBUG        
+#ifdef DEBUG
+  std::cout << "reference new_x, new_y - mesh_radius = " << new_x << ", "
+            << new_y - mesh_radius << std::endl;
+#endif
+#undef DEBUG
+
 #if DIM==3
   double vz = momentum(index_particle, PART_MOM_Z) / gamma;
   double new_z = position(index_particle, PART_POS_Z) + vz * hdt;
@@ -108,9 +115,17 @@ void Beam::move_reference(int index_particle,
   new_y += new_vy * hdt;
 
   // enforce reference particle on circular trajectory
-  if (traject == CIRCULAR) {
+  // TODO: should enforce velocity too
+  if (traject == CIRCULAR and new_x > 0.0) {
     new_y = std::sqrt(std::pow(mesh_radius, 2) - std::pow(new_x, 2));
   }
+
+//#define DEBUG        
+#ifdef DEBUG
+  std::cout << "reference new_x, new_y - mesh_radius = " << new_x << ", "
+            << new_y - mesh_radius << std::endl;
+#endif
+#undef DEBUG
 
   position(index_particle, PART_POS_X) = new_x;
   position(index_particle, PART_POS_Y) = new_y;
@@ -526,15 +541,16 @@ void Beam::calculate_momenta(double time,
 
       // synchrotron, params = [gamma_e, radius]
     case CIRCULAR: {
-      double const radius = motion_params[1];
+      //  double const radius = motion_params[1];
       double const theta_0 = beta * time;
 
       //if (time >= 0) {
       if (x >= 0) {
-        momenta[0] =  p * std::cos(theta_0);
-        momenta[1] = -p * std::sin(theta_0);
+        double const rot_angle = std::asin(x);
+        momenta[0] =  p * std::cos(rot_angle);
+        momenta[1] = -p * std::sin(rot_angle);
+//#define DEBUG        
 #ifdef DEBUG
-        double const rot_angle = std::asin(x / radius);
           std::cout << "angle dif = " << theta_0 - rot_angle << ", "
                     << theta_0 << ", " << time << ", " << rot_angle << ", "
                     << x << std::endl;
