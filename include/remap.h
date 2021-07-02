@@ -25,6 +25,7 @@ public:
    * @param in_timer: timer.
    */
   Remap(Input& in_input,
+        Beam& in_beam,
         Wavelets& in_wavelets,
         Mesh& in_mesh,
         Analysis& in_analysis,
@@ -159,6 +160,12 @@ private:
    *
    */
   Input& input;
+
+  /**
+   * @brief Reference to beam.
+   *
+   */
+  Beam& beam;
 
   /**
    * @brief Reference to wavelets.

@@ -6,11 +6,13 @@ namespace cosyr {
 
 /* -------------------------------------------------------------------------- */
 Remap::Remap(Input& in_input,
+             Beam& in_beam,
              Wavelets& in_wavelets,
              Mesh& in_mesh,
              Analysis& in_analysis,
              Timer& in_timer)
   : input(in_input),
+    beam(in_beam),
     wavelets(in_wavelets),
     mesh(in_mesh),
     analysis(in_analysis),
