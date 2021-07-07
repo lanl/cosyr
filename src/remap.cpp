@@ -6,11 +6,13 @@ namespace cosyr {
 
 /* -------------------------------------------------------------------------- */
 Remap::Remap(Input& in_input,
+             Beam& in_beam,
              Wavelets& in_wavelets,
              Mesh& in_mesh,
              Analysis& in_analysis,
              Timer& in_timer)
   : input(in_input),
+    beam(in_beam),
     wavelets(in_wavelets),
     mesh(in_mesh),
     analysis(in_analysis),
@@ -163,20 +165,48 @@ void Remap::collect_grid() {
 }
 
 /* -------------------------------------------------------------------------- */
-Wonton::vector<Remap::Matrix> Remap::compute_smoothing_length() const {
+Wonton::Point<DIM> Remap::deduce_local_coords(int particle) const {
+
+  static_assert(DIM == 2, "dimension not yet supported");
+
+  // compute local coordinates of current particle
+  auto position = Cabana::slice<Beam::Position>(beam.particles);
+  double const x = position(particle, PART_POS_X);
+  double const y = position(particle, PART_POS_Y);
+  double const cos_angle = mesh.center.cosin_angle[0];
+  double const sin_angle = mesh.center.sinus_angle[0];
+  double const x_local = x * cos_angle - y * sin_angle;
+  double const y_local = x * sin_angle + y * cos_angle - input.kernel.radius;
+  return { x_local, y_local };
+}
+
+/* -------------------------------------------------------------------------- */
+Wonton::vector<Remap::Matrix> Remap::compute_smoothing_length(int particle) const {
+
+  static_assert(DIM == 2, "dimension not yet supported");
 
   auto& swarm = input.remap.scatter ? wave : grid;
   int const num_points = swarm.num_particles();
   double const one_third = 1./3.;
   Wonton::vector<Matrix> result(num_points);
 
+  // deduce the offset to the mesh point coordinate from the current particle
+  // position when computing the adaptive smoothing lengths.
+  auto const offset = (input.remap.adaptive ? deduce_local_coords(particle)
+                                            : Wonton::Point<DIM>(0.,0.));
+
+  // offset on longitudinal coordinates to avoid the spiky region
+  double const alpha_min = 12e-6;
+  // scaling factor for smoothing length to cover the right end of the domain
+  double const h_scaling = 1.5 * 225.;
+
   Kokkos::parallel_for(HostRange(0, num_points), [&](int i) {
     auto const p = swarm.get_particle_coordinates(i);
     auto h_adap = h;
-    if (input.remap.adaptive and p[0] > 0.) {
-      double const alpha = p[0];
+    double const alpha = p[0] - offset[0];
+    if (input.remap.adaptive and alpha > alpha_min) {
       double const psi = std::pow(24. * alpha, one_third);
-      h_adap[0] = dtdx * h[0] *
+      h_adap[0] = h_scaling * h[0] *
                   (std::pow(psi, 3.)/6. + psi/gamma/gamma - alpha)
                   / (alpha + psi);
     }
@@ -187,13 +217,13 @@ Wonton::vector<Remap::Matrix> Remap::compute_smoothing_length() const {
 }
 
 /* -------------------------------------------------------------------------- */
-void Remap::run(bool accumulate, bool rescale, double scaling) {
+void Remap::run(int particle, bool accumulate, bool rescale, double scaling) {
 
   // regression parameters
   auto const weight_center = input.remap.scatter ? WeightCenter::Scatter
                                                  : WeightCenter::Gather;
 
-  auto smoothing_lengths = compute_smoothing_length();
+  auto smoothing_lengths = compute_smoothing_length(particle);
 
   // perform the remap
   driver = std::make_unique<Remapper>(wave, source, grid, target,
@@ -257,7 +287,7 @@ void Remap::interpolate(int step, double scaling) {
       print_info(input.wavelets.count);
       collect_subcycle_wavelets();
       collect_grid();
-      run(accumulate, rescale, 1.0);
+      run(0, accumulate, rescale, 1.0);
       print_progress();
 
       // assess numerical error
@@ -283,7 +313,7 @@ void Remap::interpolate(int step, double scaling) {
           collect_active_wavelets(j, num_active[j]);
           collect_grid();
           rescale = (j == last_particle);
-          run(accumulate, rescale, scaling);
+          run(j, accumulate, rescale, scaling);
           accumulate = true;
           print_progress(j, last_particle);
         }

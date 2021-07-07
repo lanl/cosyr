@@ -25,6 +25,7 @@ public:
    * @param in_timer: timer.
    */
   Remap(Input& in_input,
+        Beam& in_beam,
         Wavelets& in_wavelets,
         Mesh& in_mesh,
         Analysis& in_analysis,
@@ -66,17 +67,31 @@ private:
    * It is defined on mesh points for gather weight form and on wavelets
    * for scatter weight form. It determines how many near field points
    * will influence the value on a mesh point.
+   *
+   * @param particle: index of particle emitting the set of wavelets.
    */
-  Wonton::vector<Matrix> compute_smoothing_length() const;
+  Wonton::vector<Matrix> compute_smoothing_length(int particle) const;
+
+  /**
+   * @brief Deduce the local coordinates (x',y') of the current particle.
+   *
+   * It is used as an offset to the coordinates of each mesh point when
+   * computing adaptive smoothing lengths.
+   *
+   * @param particle: index of particle emitting the set of wavelets.
+   * @return
+   */
+  Wonton::Point<DIM> deduce_local_coords(int particle) const;
 
   /**
    * @brief Remap the wavelet field values to mesh.
    *
+   * @param particle: index of particle emitting the set of wavelets.
    * @param accumulate: whether to accumulate field values or not.
    * @param rescale: whether to rescale field values or not.
    * @param scaling: field scaling factor.
    */
-  void run(bool accumulate, bool rescale, double scaling);
+  void run(int particle, bool accumulate, bool rescale, double scaling);
 
   /**
    * @brief Print remap info.
@@ -159,6 +174,12 @@ private:
    *
    */
   Input& input;
+
+  /**
+   * @brief Reference to beam.
+   *
+   */
+  Beam& beam;
 
   /**
    * @brief Reference to wavelets.

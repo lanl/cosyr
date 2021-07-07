@@ -34,7 +34,7 @@ int main(int argc, char* argv[]) {
     cosyr::Wavelets wavelets(input, timer);
     cosyr::Mesh mesh(input);
     cosyr::Pusher pusher(input, beam, mesh, timer);
-    cosyr::Remap remap(input, wavelets, mesh, analysis, timer);
+    cosyr::Remap remap(input, beam, wavelets, mesh, analysis, timer);
     cosyr::IO io(input, beam, wavelets, mesh, timer);
 
     double t = 0.;
