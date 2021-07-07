@@ -195,13 +195,18 @@ Wonton::vector<Remap::Matrix> Remap::compute_smoothing_length(int particle) cons
   auto const offset = (input.remap.adaptive ? deduce_local_coords(particle)
                                             : Wonton::Point<DIM>(0.,0.));
 
+  // offset on longitudinal coordinates to avoid the spiky region
+  double const alpha_min = 12e-6;
+  // scaling factor for smoothing length to cover the right end of the domain
+  double const h_scaling = 1.5 * 225.;
+
   Kokkos::parallel_for(HostRange(0, num_points), [&](int i) {
     auto const p = swarm.get_particle_coordinates(i);
     auto h_adap = h;
     double const alpha = p[0] - offset[0];
-    if (input.remap.adaptive and alpha > 0.) {
+    if (input.remap.adaptive and alpha > alpha_min) {
       double const psi = std::pow(24. * alpha, one_third);
-      h_adap[0] = dtdx * h[0] *
+      h_adap[0] = h_scaling * h[0] *
                   (std::pow(psi, 3.)/6. + psi/gamma/gamma - alpha)
                   / (alpha + psi);
     }
