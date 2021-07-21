@@ -8,10 +8,10 @@ from input.misc import *
 
 ####################### Preprocessing ##########################
 
-run_name = "test_beam_remap_np1e4"
+run_name = "test_beam_remap_g1000"
 
 ## electron and trajectory
-gamma=100
+gamma=1000
 l_beam = 200 #3000   # beam length, in um
 d_beam = 200 #50     # beam radius, in um
 psi_max = 1e-4 #0.42   # max retarded 
@@ -20,7 +20,7 @@ psi_max = 1e-4 #0.42   # max retarded
 scaled_alpha = l_beam*1e-6*gamma**3.0 * 3.0 # scaled alpha range of mesh 
 scaled_chi = d_beam*1e-6*gamma**2.0 * 2.0 # scaled chi range of mesh
 if (mpi_rank==0) : print("scaled_alpha={}, scaled_chi={}".format(scaled_alpha, scaled_chi))
-npt_alpha = 101 #1001  # number of mesh points along alpha
+npt_alpha = 1001 #1001  # number of mesh points along alpha
 npt_chi = 3  #101   # number of mesh points along chi
 wpc = [1,1]         # wavlets per cell
 if (mpi_rank==0) : print("npt_alpha={}, npt_chi={}".format(npt_alpha, npt_chi))
@@ -44,7 +44,7 @@ remap_verbose = False               # print remap statistics
 
 # electron beam
 beam_charge = 0.01                 # nC
-num_particles = 100000             # number of particles
+num_particles = 3000             # number of particles
 trajectory_type = 2                # 1: straight line, 2: circular, 3: sinusoidal
 parameters[0] = gamma              # central energy for all types
 parameters[1] = 100.0              # propagation angle for type 1, radius (cm) for type 2, frequency for type 3
@@ -59,7 +59,7 @@ mesh_span_angle = scaled_alpha/gamma**3   # in radians
 mesh_width = scaled_chi/gamma**2          # in unit of radius
 
 ## load wavelets
-wavelet_x, wavelet_y, wavelet_field = gen_test_wavelets(scaled_alpha*2, scaled_chi*2, np.int((npt_alpha-1)*wpc[0]*2+2), np.int((npt_chi-1)*wpc[1]*2+1), gamma, unscale_coord=True)
+wavelet_x, wavelet_y, wavelet_field = gen_test_wavelets(scaled_alpha*2, scaled_chi*2, np.int((npt_alpha-1)*wpc[0]*2+2), np.int((npt_chi-1)*wpc[1]*2+1), gamma, unscale_coord=True, distribution="adaptive_1d", method="potential", filter=True, filter_exp="np.abs(wx) > 300.0")
 if (mpi_rank==0) :
     print("wavelet shape =", wavelet_x.shape, wavelet_y.shape, wavelet_field.shape)
     if wavelet_field.ndim == 1:
