@@ -3,7 +3,7 @@ import numpy as np
 class CosyrAnalyze(object):
    
     def __init__(self, gamma, data_dir="../..", # path to data
-                 charge=0.01, # beam charge in nC
+                 charge=0.01e-9, # beam charge in Coulomb
                  R_bend=1.0,  # beam bending radius in meter
                  pid=0, # particle index
                  step=0, # time step
@@ -256,7 +256,7 @@ class CosyrAnalyze(object):
         hf.close()
   
 
-    def show_beam(self, np_slice=300, figsize=(12,8), tau_unit="um") :
+    def show_beam(self, np_slice=300, smooth_param=0.0, figsize=(12,8), tau_unit="um") :
         from ocelot.gui.accelerator import show_e_beam
         import matplotlib.pyplot as plt
 
@@ -268,7 +268,7 @@ class CosyrAnalyze(object):
             self.p_beam = self.convert2ocelot(self.beam, self.charge, self.gamma, self.R_bend)
             print("done.")
 
-        show_e_beam(p_array=self.p_beam, nparts_in_slice=np_slice, title="t="+str(np.round(self.step*self.dt,4)), inverse_tau=True, figsize=figsize, tau_units=tau_unit)
+        show_e_beam(p_array=self.p_beam, nparts_in_slice=np_slice, smooth_param = smooth_param, title="t="+str(np.round(self.step*self.dt,4)), inverse_tau=True, figsize=figsize, tau_units=tau_unit)
         plt.tight_layout(pad=0.6)
 
     
