@@ -2,7 +2,7 @@
 
 <img src="docs/logo.png?raw=true" alt="logo" width="150">
 
-<!--###### Summary-->
+###### Summary
 Cosyr is a particle beam dynamics simulation code with multi-dimensional [synchrotron radiation](https://en.wikipedia.org/wiki/Synchrotron_radiation) effects. It tackles a fundamental problem of the self-consistent nonlinear dynamics of a particle beam from its complete self-fields, particularly the radiation fields, i.e the [coherent synchrotron radiation (CSR)](http://linkinghub.elsevier.com/retrieve/pii/S016890029700822X) problem. The latter underpins many accelerator design issues in ultra-bright beam applications, as well as those arising in the development of advanced accelerators. It is written in C++, supports two levels of parallelism with MPI and Kokkos and is in active development. A [poster](./docs/CSR_IPAC2021.pdf) about Cosyr was presented at the [IPAC'21](https://www.ipac21.org/index.php#) conference.
 
 ![build](https://github.com/lanl/cosyr/actions/workflows/main.yml/badge.svg)
@@ -12,38 +12,29 @@ Cosyr is a particle beam dynamics simulation code with multi-dimensional [synchr
 Cosyr's algorithm is based on the Lienard-Wiechert field formula of the retarded Green’s function for the Maxwell equations. The algorithm is depicted in the snippet below.
 
 <!--![Algorithm](./docs/algorithm.png)-->
+<img src="docs/principle.png?raw=true" alt="logo" align=left width="350">
 
-<table>
-<tr>
-<td>
-  <img src="docs/principle.png?raw=true" alt="logo" width="400">
-</td>
-<td>
-```c++
-initialization
-for each time step {
-  push reference particle
-  update moving mesh
-  push other particles
-  if (emit wavelets) {
-    update emission data
-    for each particle {
+```
+initialization  
+for each time step {  
+  push reference particle  
+  update moving mesh  
+  push other particles  
+  if (emit wavelets) {  
+    update emission data  
+    for each particle {  
       shift subcycle wavelets
       emit dynamic wavefront
       for each wavefront {
-        if (wavefront intersects mesh) {
-          compute fields for its wavelets
+        if wavefront intersects mesh {
+          compute wavelets fields
         }
       }
     }
     interpolate fields from wavelets to mesh
-    accumulate those of non-reference particles
   } 
 }
 ```
-</td>
-</tr>
-</table>
 
 A local Cartesian moving window is used to follow the beam’s trajectory and the fields (or potential) for each particle are calculated on the radiation wavefronts that intersect with moving window. These radiation wavefronts are emitted along the trajectory of the particle at a specified interval. The wavefronts and the points on the wavefronts (called wavelets) where fields are calculated form a mesh that naturally adapts to the emission. Specifically, wavefronts and wavelets are divided into two groups, i.e., dynamic or subcycle ones, depending on the retarded time. For wavefronts/wavelets corresponding to a large retarded time, e.g., longer than the typical time scale of the beam evolution, the fields are calculated taking into account of the full dependence on the position, velocity and acceleration at emission. For the ones that are emitted with a retarded time shorter than the beam evolution time scale, they are treated as emission from subcycle time steps where the emitting particles are assumed to follow the reference trajectory but shifted by the particle’s offset to the reference particle (the reference particle is a particle that has the reference energy and only experiences external fields). Accordingly, the subcyle wavelets and their fields are precalculated using the reference particle.   All wavelet fields are then interpolated onto a uniform mesh in the moving window using a flexible particle/mesh remapping tool, Portage, and contributions from all particles are summed together to obtain the beam self-fields. The beam fields are again interpolated to the particle’s location and used to push them in the same manner as in conventional Particle-In-Cell codes. This method allows: 
 
