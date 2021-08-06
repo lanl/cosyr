@@ -5,13 +5,12 @@
 
 ###### Summary
 
-![build](https://github.com/lanl/cosyr/actions/workflows/main.yml/badge.svg)
-
 Cosyr is a particle beam dynamics simulation code with multi-dimensional [synchrotron radiation](https://en.wikipedia.org/wiki/Synchrotron_radiation) effects. It tackles a fundamental problem of the self-consistent nonlinear dynamics of a particle beam from its complete self-fields, particularly the radiation fields, i.e the [coherent synchrotron radiation (CSR)](http://linkinghub.elsevier.com/retrieve/pii/S016890029700822X) problem. The latter underpins many accelerator design issues in ultra-bright beam applications, as well as those arising in the development of advanced accelerators. It is is actively developed and supports two levels of parallelism with MPI and Kokkos. A related [poster](./docs/CSR_IPAC2021.pdf) was presented at the [IPAC'21](https://www.ipac21.org/index.php#) conference.
 
+![build](https://github.com/lanl/cosyr/actions/workflows/main.yml/badge.svg)
 
 ###### Algorithm
-Cosyr's algorithm is based on the Lienard-Wiechert field formula of the retarded Green’s function for the Maxwell equations. A local cartesian moving mesh is used to follow the trajectory of the beam. For each particle, their fields (or potential) are then calculated on the radiation wavefronts that intersect with the moving mesh. These wavefronts are emitted along the trajectory of the particle at a specified interval. Their discretization points (called wavelets) form another mesh that is naturally adapted to the emission. In particular, these wavefronts are divided into two groups depending on the retarded time: 
+It is based on the Lienard-Wiechert field formula of the retarded Green’s function for the Maxwell equations. A local cartesian moving mesh is used to follow the trajectory of the beam. For each particle, their fields (or potential) are then calculated on the radiation wavefronts that intersect with the moving mesh. These wavefronts are emitted along the trajectory of the particle at a specified interval. Their discretization points (called wavelets) form another mesh that is naturally adapted to the emission. In particular, these wavefronts are divided into two groups depending on the retarded time: 
 
 - **dynamic**: they correspond to the wavefronts associated to a large retarded time (longer than the typical time scale of the beam evolution for instance). Here, the fields are calculated by taking into account the full dependence on the position, velocity and acceleration at emission. 
 - **subcycle**: they correspond to the wavefronts that are emitted with a retarded time shorter than the beam evolution time scale. Here, they are treated as if being emitted from subcycle time steps where the emitting particles are assumed to follow the reference trajectory but shifted by their offset from the reference particle. As such, the subcyle wavelets and their fields are precalculated using the reference particle which has the reference energy and experiences only external fields. 
@@ -44,9 +43,7 @@ for each time step {
 }
 ```
 
-By doing so, the high frequency radiations can be separated from those that can be resolved on the moving mesh by selecting the wavelets on a given wavefront. In addition, the synchrotron radiation can be emitted from the trajectories of the particles, which dynamically respond to the self-fields. Finally, the algorithm provides multiple levels of parallelism to leverage high performance computing clusters. 
-
->It is more computationally intensive than other CSR models, and is currently limited to low energy beams. 
+By doing so, the high frequency radiations can be separated from those that can be resolved on the moving mesh by selecting the wavelets on a given wavefront. In addition, the synchrotron radiation can be emitted from the trajectories of the particles, which dynamically respond to the self-fields. Finally, the algorithm provides multiple levels of parallelism to leverage high performance computing clusters. It is more computationally intensive than other CSR models though. As such, it is currently limited to low energy beams. 
 
 <!--
 Cosyr consists of three components:
