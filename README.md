@@ -9,11 +9,49 @@ Cosyr is a particle beam dynamics simulation code with multi-dimensional [synchr
 
 ###### Algorithms
 
-Cosyr's algorithm is based on the Lienard-Wiechert field formula of the retarded Green’s function for the Maxwell equations. The algorithm is shown in the diagram below.
+Cosyr's algorithm is based on the Lienard-Wiechert field formula of the retarded Green’s function for the Maxwell equations. The algorithm is depicted in the snippet below.
 
-![Algorithm](./docs/algorithm.png)
+<!--![Algorithm](./docs/algorithm.png)-->
 
-A local Cartesian moving window is used to follow the beam’s trajectory and the fields (or potential) for each particle are calculated on the radiation wavefronts that intersect with moving window. These radiation wavefronts are emitted along the trajectory of the particle at a specified interval. The wavefronts and the points on the wavefronts (called wavelets) where fields are calculated form a mesh that naturally adapts to the emission. Specifically, wavefronts and wavelets are divided into two groups, i.e., dynamic or subcycle ones, depending on the retarded time. For wavefronts/wavelets corresponding to a large retarded time, e.g., longer than the typical time scale of the beam evolution, the fields are calculated taking into account of the full dependence on the position, velocity and acceleration at emission. For the ones that are emitted with a retarded time shorter than the beam evolution time scale, they are treated as emission from subcycle time steps where the emitting particles are assumed to follow the reference trajectory but shifted by the particle’s offset to the reference particle (the reference particle is a particle that has the reference energy and only experiences external fields). Accordingly, the subcyle wavelets and their fields are precalculated using the reference particle.   All wavelet fields are then interpolated onto a uniform mesh in the moving window using a flexible particle/mesh remapping tool, Portage, and contributions from all particles are summed together to obtain the beam self-fields. The beam fields are again interpolated to the particle’s location and used to push them in the same manner as in conventional Particle-In-Cell codes. This method allows: (1) the separation of the high frequency radiations from the ones that can be resolved by the moving mesh by selecting the wavelets on a wavefront; (2) synchrotron radiation emission from the beam particles’ trajectories which dynamically respond to the self-fields; (3) multiple inherent parallelisms to be implemented on modern high performance computing architectures with MPI, multi-threading and GPUs. However, this approach is also much more computationally intensive than other CSR models and codes and hence currently limited to the modeling of low energy beams
+<table>
+<tr>
+<td>
+  <img src="docs/principle.png?raw=true" alt="logo" width="400">
+</td>
+<td>
+```c++
+initialization
+for each time step {
+  push reference particle
+  update moving mesh
+  push other particles
+  if (emit wavelets) {
+    update emission data
+    for each particle {
+      shift subcycle wavelets
+      emit dynamic wavefront
+      for each wavefront {
+        if (wavefront intersects mesh) {
+          compute fields for its wavelets
+        }
+      }
+    }
+    interpolate fields from wavelets to mesh
+    accumulate those of non-reference particles
+  } 
+}
+```
+</td>
+</tr>
+</table>
+
+A local Cartesian moving window is used to follow the beam’s trajectory and the fields (or potential) for each particle are calculated on the radiation wavefronts that intersect with moving window. These radiation wavefronts are emitted along the trajectory of the particle at a specified interval. The wavefronts and the points on the wavefronts (called wavelets) where fields are calculated form a mesh that naturally adapts to the emission. Specifically, wavefronts and wavelets are divided into two groups, i.e., dynamic or subcycle ones, depending on the retarded time. For wavefronts/wavelets corresponding to a large retarded time, e.g., longer than the typical time scale of the beam evolution, the fields are calculated taking into account of the full dependence on the position, velocity and acceleration at emission. For the ones that are emitted with a retarded time shorter than the beam evolution time scale, they are treated as emission from subcycle time steps where the emitting particles are assumed to follow the reference trajectory but shifted by the particle’s offset to the reference particle (the reference particle is a particle that has the reference energy and only experiences external fields). Accordingly, the subcyle wavelets and their fields are precalculated using the reference particle.   All wavelet fields are then interpolated onto a uniform mesh in the moving window using a flexible particle/mesh remapping tool, Portage, and contributions from all particles are summed together to obtain the beam self-fields. The beam fields are again interpolated to the particle’s location and used to push them in the same manner as in conventional Particle-In-Cell codes. This method allows: 
+
+1. the separation of the high frequency radiations from the ones that can be resolved by the moving mesh by selecting the wavelets on a wavefront;
+2. synchrotron radiation emission from the beam particles’ trajectories which dynamically respond to the self-fields; 
+3. multiple levels of parallelism to leverage high performance computing architectures. 
+
+However, this approach is also much more computationally intensive than other CSR models and codes and hence currently limited to the modeling of low energy beams
 
 The Cosyr code consists of the following three components:
 
