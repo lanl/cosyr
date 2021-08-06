@@ -1,4 +1,6 @@
-# Cosyr <img src="https://github.com/lanl/cosyr/blob/update-doc/docs/cosyr-logo.png?raw=true"  alt="CoSyR logo" align="right" width="150">
+
+
+<img src="docs/logo.png?raw=true" alt="logo" width="120">
 
 ![build](https://github.com/lanl/cosyr/actions/workflows/main.yml/badge.svg)
 
