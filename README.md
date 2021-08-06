@@ -1,12 +1,11 @@
 
 
-<img src="docs/logo.png?raw=true" alt="logo" width="120">
+<img src="docs/logo.png?raw=true" alt="logo" width="150">
+
+<!--###### Summary-->
+Cosyr is a particle beam dynamics simulation code with multi-dimensional [synchrotron radiation](https://en.wikipedia.org/wiki/Synchrotron_radiation) effects. It tackles a fundamental problem of the self-consistent nonlinear dynamics of a particle beam from its complete self-fields, particularly the radiation fields, i.e the [coherent synchrotron radiation (CSR)](http://linkinghub.elsevier.com/retrieve/pii/S016890029700822X) problem. The latter underpins many accelerator design issues in ultra-bright beam applications, as well as those arising in the development of advanced accelerators. It is written in C++, supports two levels of parallelism with MPI and Kokkos and is in active development. A [poster](./docs/CSR_IPAC2021.pdf) about Cosyr was presented at the [IPAC'21](https://www.ipac21.org/index.php#) conference.
 
 ![build](https://github.com/lanl/cosyr/actions/workflows/main.yml/badge.svg)
-
-###### Summary
-Cosyr is a particle beam dynamics simulation code with multi-dimensional [synchrotron radiation](https://en.wikipedia.org/wiki/Synchrotron_radiation) effects. It tackles a fundamental problem of the self-consistent nonlinear dynamics of a particle beam from its complete self-fields, particularly the radiation fields, i.e the [coherent synchrotron radiation (CSR)](http://linkinghub.elsevier.com/retrieve/pii/S016890029700822X) problem. The latter underpins many accelerator design issues in ultra-bright beam applications, as well as those arising in the development of advanced accelerators. It is written in C++ and supports two levels of parallelism with MPI and Kokkos. CoSyR is an open-source code (https://github.com/lanl/cosyr) which is in active development. A [poster](./docs/CSR_IPAC2021.pdf) about Cosyr is presented at the [IPAC 2021](https://www.ipac21.org/index.php#) conference.
-
 
 ###### Algorithms
 
