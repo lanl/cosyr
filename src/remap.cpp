@@ -219,18 +219,67 @@ Wonton::vector<Remap::Matrix> Remap::compute_smoothing_length(int particle) cons
 /* -------------------------------------------------------------------------- */
 void Remap::run(int particle, bool accumulate, bool rescale, double scaling) {
 
-  // regression parameters
-  auto const weight_center = input.remap.scatter ? WeightCenter::Scatter
-                                                 : WeightCenter::Gather;
+  if (input.remap.scatter) {
+    throw std::runtime_error("scatter weights form not supported yet");
+  }
+
+  using Filter = Portage::SearchPointsBins<DIM, Wonton::Swarm<DIM>, Wonton::Swarm<DIM>>;
+  using Accumulator = Portage::Accumulate<DIM, Wonton::Swarm<DIM>, Wonton::Swarm<DIM>>;
+  using Estimator = Portage::Estimate<DIM, Wonton::SwarmState<DIM>>;
+
+  int const num_points = grid.num_owned_particles();
+
+  Wonton::vector<Point<DIM>> extents(num_points);
+  Wonton::vector<std::vector<int>> neighbors(num_points);
+  Wonton::vector<Weight::Kernel> kernels(num_points, Weight::B4);
+  Wonton::vector<Weight::Geometry> support(num_points, Weight::ELLIPTIC);
+  Wonton::vector<std::vector<Wonton::Weights_t>> weights(num_points);
+
+  float elapsed[4] = {0, 0, 0, 0};
+  auto tic = timer::now();
 
   auto smoothing_lengths = compute_smoothing_length(particle);
+  elapsed[0] = timer::elapsed(tic, true);
 
-  // perform the remap
-  driver = std::make_unique<Remapper>(wave, source, grid, target,
-                                      smoothing_lengths, Weight::B4,
-                                      Weight::ELLIPTIC, weight_center);
-  driver->set_remap_var_names(fields, fields,LocalRegression, basis::Unitary);
-  driver->run(nullptr, input.remap.verbose);
+  // filter wavelets in the vicinity of each mesh point
+  for (int i = 0; i < num_points; ++i) {
+    Matrix radii = smoothing_lengths[i];
+    extents[i] = Wonton::Point<DIM>(radii[0]);
+  }
+
+  Filter search(wave, grid, extents, extents, WeightCenter::Gather);
+  Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                    grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                    neighbors.begin(), search);
+  elapsed[1] = timer::elapsed(tic, true);
+
+  // compute remap weights
+  Accumulator accumulator(wave, grid, Portage::LocalRegression, WeightCenter::Gather,
+                          kernels, support, smoothing_lengths, basis::Unitary);
+  Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                    grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                    neighbors.begin(), weights.begin(), accumulator);
+  elapsed[2] = timer::elapsed(tic, true);
+
+  // estimate field on mesh points
+  Estimator estimator(source);
+
+  for (auto const& current : fields) {
+    estimator.set_variable(current);
+    auto& values = target.get_field(current);
+    Wonton::pointer<double> field(values.data());
+    Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                      grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                      weights.begin(), field, estimator);
+  }
+
+  elapsed[3] = timer::elapsed(tic);
+
+  std::cout << "Remap time: " << elapsed[0] + elapsed[1] + elapsed[2] + elapsed[3] << " (s)" << std::endl;
+  std::cout << " - smoothing lengths: " << elapsed[0] << " (s)" << std::endl;
+  std::cout << " - filter neighbors: " << elapsed[1] << " (s)" << std::endl;
+  std::cout << " - compute weights: " << elapsed[2] << " (s)" << std::endl;
+  std::cout << " - estimate fields: " << elapsed[3] << " (s)" << std::endl;
 
   // copy back values to mesh
 #if DIM == 3
