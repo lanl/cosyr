@@ -251,7 +251,7 @@ void Remap::run(int particle, bool accumulate, bool rescale, double scaling) {
     extents[i] = Wonton::Point<DIM>(radii[0]);
   }
 
-  Filter search(wave, grid, extents, extents, WeightCenter::Gather);
+  Filter search(wave, grid, extents, extents, WeightCenter::Gather, 1);
   Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
                     grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
                     neighbors.begin(), search);

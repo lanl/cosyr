@@ -172,12 +172,6 @@ private:
   Wonton::SwarmState<DIM> target;
 
   /**
-   * @brief Remap driver.
-   *
-   */
-  std::unique_ptr<Remapper> driver;
-
-  /**
    * @brief Reference to simulation parameters.
    *
    */
