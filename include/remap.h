@@ -78,7 +78,7 @@ private:
    *
    * @param particle: index of particle emitting the set of wavelets.
    */
-  Wonton::vector<Matrix> compute_smoothing_length(int particle) const;
+  void update_smoothing_lengths(int particle);
 
   /**
    * @brief Deduce the local coordinates (x',y') of the current particle.
@@ -122,6 +122,12 @@ private:
    *
    */
   std::vector<double> h = {1.0, 1.0};
+
+  /**
+   * @brief Smoothing lengths
+   *
+   */
+  Wonton::vector<Matrix> smoothing_lengths;
 
   /**
    * @brief Number of fields to remap.
