@@ -235,11 +235,15 @@ void Remap::run(int particle, bool accumulate, bool rescale, double scaling) {
   Wonton::vector<Weight::Geometry> support(num_points, Weight::ELLIPTIC);
   Wonton::vector<std::vector<Wonton::Weights_t>> weights(num_points);
 
+#if REPORT_TIME
   float elapsed[4] = {0, 0, 0, 0};
   auto tic = timer::now();
+#endif
 
   auto smoothing_lengths = compute_smoothing_length(particle);
+#if REPORT_TIME
   elapsed[0] = timer::elapsed(tic, true);
+#endif
 
   // filter wavelets in the vicinity of each mesh point
   for (int i = 0; i < num_points; ++i) {
@@ -251,7 +255,9 @@ void Remap::run(int particle, bool accumulate, bool rescale, double scaling) {
   Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
                     grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
                     neighbors.begin(), search);
+#if REPORT_TIME
   elapsed[1] = timer::elapsed(tic, true);
+#endif
 
   // compute remap weights
   Accumulator accumulator(wave, grid, Portage::LocalRegression, WeightCenter::Gather,
@@ -259,7 +265,9 @@ void Remap::run(int particle, bool accumulate, bool rescale, double scaling) {
   Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
                     grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
                     neighbors.begin(), weights.begin(), accumulator);
+#if REPORT_TIME
   elapsed[2] = timer::elapsed(tic, true);
+#endif
 
   // estimate field on mesh points
   Estimator estimator(source);
@@ -272,7 +280,7 @@ void Remap::run(int particle, bool accumulate, bool rescale, double scaling) {
                       grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
                       weights.begin(), field, estimator);
   }
-
+#if REPORT_TIME
   elapsed[3] = timer::elapsed(tic);
 
   std::cout << "Remap time: " << elapsed[0] + elapsed[1] + elapsed[2] + elapsed[3] << " (s)" << std::endl;
@@ -280,6 +288,7 @@ void Remap::run(int particle, bool accumulate, bool rescale, double scaling) {
   std::cout << " - filter neighbors: " << elapsed[1] << " (s)" << std::endl;
   std::cout << " - compute weights: " << elapsed[2] << " (s)" << std::endl;
   std::cout << " - estimate fields: " << elapsed[3] << " (s)" << std::endl;
+#endif
 
   // copy back values to mesh
 #if DIM == 3
