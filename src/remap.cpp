@@ -230,6 +230,7 @@ void Remap::update_smoothing_lengths(int particle) {
           / (alpha + psi);
       }
       smoothing_lengths[i] = Matrix(1, h_adap);
+      extents[i] = { h_adap[0], h_adap[1] };
     });
   }
 }
