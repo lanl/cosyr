@@ -19,7 +19,7 @@ The wavelet fields are then interpolated to the moving mesh, and the contributio
 The algorithm is depicted in the snippet below:
 
 <!--![Algorithm](./docs/algorithm.png)-->
-<img src="docs/principle.png?raw=true" alt="logo" align=left width="350">
+<img src="docs/principle.png?raw=true" alt="logo" align=left width="380">
 
 ```
 initialization  
@@ -38,7 +38,7 @@ for each time step {
         }
       }
     }
-    interpolate fields from wavelets to mesh
+    interpolate fields to mesh
   } 
 }
 ```

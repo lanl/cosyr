@@ -230,6 +230,7 @@ void Remap::update_smoothing_lengths(int particle) {
           / (alpha + psi);
       }
       smoothing_lengths[i] = Matrix(1, h_adap);
+      extents[i] = { h_adap[0], h_adap[1] };
     });
   }
 }
@@ -307,21 +308,15 @@ void Remap::run(int particle, bool accumulate, bool rescale, double scaling) {
   for (int i = 0; i < num_fields; i++) {
     auto field = all_fields.begin()[i];
     auto const& remapped_values = target.get_field(fields[i]);
-    int const size = remapped_values.size();
+    auto const range = HostRange(0, remapped_values.size());
 
     if (accumulate) {
-      for (int j = 0; j < size; ++j) {
-        field(j) += remapped_values[j];
-      }
+      Kokkos::parallel_for(range, [&](int j) { field(j) += remapped_values[j]; });
     } else {
-      for (int j = 0; j < size; ++j) {
-        field(j) = remapped_values[j];
-      }
+      Kokkos::parallel_for(range, [&](int j) { field(j) = remapped_values[j]; });
     }
     if (rescale) {
-      for (int j = 0; j < size; ++j) {
-        field(j) *= scaling;
-      }
+      Kokkos::parallel_for(range, [&](int j) { field(j) *= scaling; });
     }
   }
 }
