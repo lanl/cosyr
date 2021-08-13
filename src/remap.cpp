@@ -18,7 +18,19 @@ Remap::Remap(Input& in_input,
     analysis(in_analysis),
     timer(in_timer)
 {
+  if (input.remap.scatter) {
+    throw std::runtime_error("scatter weights form not supported yet");
+  }
+
   num_fields = std::min(input.wavelets.num_fields, DIM + 1);
+
+  int const num_points = mesh.num_points;
+  extents.resize(num_points);
+  neighbors.resize(num_points);
+  kernels.resize(num_points, Weight::B4);
+  support.resize(num_points, Weight::ELLIPTIC);
+  weights.resize(num_points);
+  smoothing_lengths.resize(num_points);
 
   // approximate cell sizes in circumferential and radial directions.
   double hc = input.kernel.radius * input.mesh.span_angle / (input.mesh.num_hor - 1);
@@ -29,8 +41,17 @@ Remap::Remap(Input& in_input,
     std::cout << "remap: hr: "<< hr << ", hc: " << hc << std::endl;
   }
 
+  // set smoothing lengths
   h[0] = input.remap.scaling[0] * hc;
   h[1] = input.remap.scaling[1] * hr;
+
+  Kokkos::parallel_for(HostRange(0, num_points),
+                       [&](int i) { smoothing_lengths[i] = Matrix(1, h); });
+
+  // set search radii
+  Kokkos::parallel_for(HostRange(0, num_points),
+                       [&](int i) { extents[i] = {h[0], h[1] }; });
+
   gamma = input.kernel.motion_params[0];
   dtdx = input.kernel.dt / hc;
 
@@ -181,56 +202,95 @@ Wonton::Point<DIM> Remap::deduce_local_coords(int particle) const {
 }
 
 /* -------------------------------------------------------------------------- */
-Wonton::vector<Remap::Matrix> Remap::compute_smoothing_length(int particle) const {
+void Remap::update_smoothing_lengths(int particle) {
 
   static_assert(DIM == 2, "dimension not yet supported");
 
-  auto& swarm = input.remap.scatter ? wave : grid;
-  int const num_points = swarm.num_particles();
-  double const one_third = 1./3.;
-  Wonton::vector<Matrix> result(num_points);
+  if (input.remap.adaptive) {
+    double const one_third = 1./3.;
+    int const num_points = mesh.num_points;
 
-  // deduce the offset to the mesh point coordinate from the current particle
-  // position when computing the adaptive smoothing lengths.
-  auto const offset = (input.remap.adaptive ? deduce_local_coords(particle)
-                                            : Wonton::Point<DIM>(0.,0.));
+    // deduce the offset to the mesh point coordinate from the current particle
+    // position when computing the adaptive smoothing lengths.
+    auto const offset = deduce_local_coords(particle);
 
-  // offset on longitudinal coordinates to avoid the spiky region
-  double const alpha_min = 12e-6;
-  // scaling factor for smoothing length to cover the right end of the domain
-  double const h_scaling = 1.5 * 225.;
+    // offset on longitudinal coordinates to avoid the spiky region
+    double const alpha_min = 12e-6;
+    // scaling factor for smoothing length to cover the right end of the domain
+    double const h_scaling = 1.5 * 225.;
 
-  Kokkos::parallel_for(HostRange(0, num_points), [&](int i) {
-    auto const p = swarm.get_particle_coordinates(i);
-    auto h_adap = h;
-    double const alpha = p[0] - offset[0];
-    if (input.remap.adaptive and alpha > alpha_min) {
-      double const psi = std::pow(24. * alpha, one_third);
-      h_adap[0] = h_scaling * h[0] *
-                  (std::pow(psi, 3.)/6. + psi/gamma/gamma - alpha)
-                  / (alpha + psi);
-    }
-    result[i] = Matrix(1, h_adap);
-  });
-
-  return result;
+    Kokkos::parallel_for(HostRange(0, num_points), [&](int i) {
+      auto const p = grid.get_particle_coordinates(i);
+      auto h_adap = h;
+      double const alpha = p[0] - offset[0];
+      if (alpha > alpha_min) {
+        double const psi = std::pow(24. * alpha, one_third);
+        h_adap[0] = h_scaling * h[0] *
+          (std::pow(psi, 3.)/6. + psi/gamma/gamma - alpha)
+          / (alpha + psi);
+      }
+      smoothing_lengths[i] = Matrix(1, h_adap);
+    });
+  }
 }
 
 /* -------------------------------------------------------------------------- */
 void Remap::run(int particle, bool accumulate, bool rescale, double scaling) {
 
-  // regression parameters
-  auto const weight_center = input.remap.scatter ? WeightCenter::Scatter
-                                                 : WeightCenter::Gather;
+  using Filter = Portage::SearchPointsBins<DIM, Wonton::Swarm<DIM>, Wonton::Swarm<DIM>>;
+  using Accumulator = Portage::Accumulate<DIM, Wonton::Swarm<DIM>, Wonton::Swarm<DIM>>;
+  using Estimator = Portage::Estimate<DIM, Wonton::SwarmState<DIM>>;
 
-  auto smoothing_lengths = compute_smoothing_length(particle);
+#if REPORT_TIME
+  float elapsed[4] = {0, 0, 0, 0};
+  auto tic = timer::now();
+#endif
 
-  // perform the remap
-  driver = std::make_unique<Remapper>(wave, source, grid, target,
-                                      smoothing_lengths, Weight::B4,
-                                      Weight::ELLIPTIC, weight_center);
-  driver->set_remap_var_names(fields, fields,LocalRegression, basis::Unitary);
-  driver->run(nullptr, input.remap.verbose);
+  if (input.remap.adaptive) {
+    update_smoothing_lengths(particle);
+    #if REPORT_TIME
+      elapsed[0] = timer::elapsed(tic, true);
+    #endif
+  }
+
+  Filter search(wave, grid, extents, extents, WeightCenter::Gather, 1);
+  Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                    grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                    neighbors.begin(), search);
+#if REPORT_TIME
+  elapsed[1] = timer::elapsed(tic, true);
+#endif
+
+  // compute remap weights
+  Accumulator accumulator(wave, grid, Portage::LocalRegression, WeightCenter::Gather,
+                          kernels, support, smoothing_lengths, basis::Unitary);
+  Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                    grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                    neighbors.begin(), weights.begin(), accumulator);
+#if REPORT_TIME
+  elapsed[2] = timer::elapsed(tic, true);
+#endif
+
+  // estimate field on mesh points
+  Estimator estimator(source);
+
+  for (auto const& current : fields) {
+    estimator.set_variable(current);
+    auto& values = target.get_field(current);
+    Wonton::pointer<double> field(values.data());
+    Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                      grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                      weights.begin(), field, estimator);
+  }
+#if REPORT_TIME
+  elapsed[3] = timer::elapsed(tic);
+
+  std::cout << "Remap time: " << elapsed[0] + elapsed[1] + elapsed[2] + elapsed[3] << " (s)" << std::endl;
+  std::cout << " - smoothing lengths: " << elapsed[0] << " (s)" << std::endl;
+  std::cout << " - filter neighbors: " << elapsed[1] << " (s)" << std::endl;
+  std::cout << " - compute weights: " << elapsed[2] << " (s)" << std::endl;
+  std::cout << " - estimate fields: " << elapsed[3] << " (s)" << std::endl;
+#endif
 
   // copy back values to mesh
 #if DIM == 3

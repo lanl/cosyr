@@ -78,7 +78,7 @@ private:
    *
    * @param particle: index of particle emitting the set of wavelets.
    */
-  Wonton::vector<Matrix> compute_smoothing_length(int particle) const;
+  void update_smoothing_lengths(int particle);
 
   /**
    * @brief Deduce the local coordinates (x',y') of the current particle.
@@ -122,6 +122,42 @@ private:
    *
    */
   std::vector<double> h = {1.0, 1.0};
+
+  /**
+   * @brief Smoothing lengths.
+   *
+   */
+  Wonton::vector<Matrix> smoothing_lengths;
+
+  /**
+   * @brief Search radii for each mesh point.
+   *
+   */
+  Wonton::vector<Point<DIM>> extents;
+
+  /**
+   * @brief List of wavelets in the vicinity of each mesh point.
+   *
+   */
+  Wonton::vector<std::vector<int>> neighbors;
+
+  /**
+   * @brief Shape functions type on each mesh point.
+   *
+   */
+  Wonton::vector<Weight::Kernel> kernels;
+
+  /**
+   * @brief Support of shape functions on each mesh point.
+   *
+   */
+  Wonton::vector<Weight::Geometry> support;
+
+  /**
+   * @brief Remap weights.
+   *
+   */
+  Wonton::vector<std::vector<Wonton::Weights_t>> weights;
 
   /**
    * @brief Number of fields to remap.
@@ -170,12 +206,6 @@ private:
    *
    */
   Wonton::SwarmState<DIM> target;
-
-  /**
-   * @brief Remap driver.
-   *
-   */
-  std::unique_ptr<Remapper> driver;
 
   /**
    * @brief Reference to simulation parameters.
