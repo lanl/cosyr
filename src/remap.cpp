@@ -24,6 +24,14 @@ Remap::Remap(Input& in_input,
 
   num_fields = std::min(input.wavelets.num_fields, DIM + 1);
 
+  int const num_points = mesh.num_points;
+  extents.resize(num_points);
+  neighbors.resize(num_points);
+  kernels.resize(num_points, Weight::B4);
+  support.resize(num_points, Weight::ELLIPTIC);
+  weights.resize(num_points);
+  smoothing_lengths.resize(num_points);
+
   // approximate cell sizes in circumferential and radial directions.
   double hc = input.kernel.radius * input.mesh.span_angle / (input.mesh.num_hor - 1);
   double hr = input.mesh.width / (input.mesh.num_ver - 1);
@@ -33,13 +41,16 @@ Remap::Remap(Input& in_input,
     std::cout << "remap: hr: "<< hr << ", hc: " << hc << std::endl;
   }
 
+  // set smoothing lengths
   h[0] = input.remap.scaling[0] * hc;
   h[1] = input.remap.scaling[1] * hr;
 
-  int const num_points = mesh.num_points;
-  smoothing_lengths.resize(num_points);
   Kokkos::parallel_for(HostRange(0, num_points),
                        [&](int i) { smoothing_lengths[i] = Matrix(1, h); });
+
+  // set search radii
+  Kokkos::parallel_for(HostRange(0, num_points),
+                       [&](int i) { extents[i] = {h[0], h[1] }; });
 
   gamma = input.kernel.motion_params[0];
   dtdx = input.kernel.dt / hc;
@@ -230,14 +241,6 @@ void Remap::run(int particle, bool accumulate, bool rescale, double scaling) {
   using Accumulator = Portage::Accumulate<DIM, Wonton::Swarm<DIM>, Wonton::Swarm<DIM>>;
   using Estimator = Portage::Estimate<DIM, Wonton::SwarmState<DIM>>;
 
-  int const num_points = grid.num_owned_particles();
-
-  Wonton::vector<Point<DIM>> extents(num_points);
-  Wonton::vector<std::vector<int>> neighbors(num_points);
-  Wonton::vector<Weight::Kernel> kernels(num_points, Weight::B4);
-  Wonton::vector<Weight::Geometry> support(num_points, Weight::ELLIPTIC);
-  Wonton::vector<std::vector<Wonton::Weights_t>> weights(num_points);
-
 #if REPORT_TIME
   float elapsed[4] = {0, 0, 0, 0};
   auto tic = timer::now();
@@ -248,12 +251,6 @@ void Remap::run(int particle, bool accumulate, bool rescale, double scaling) {
     #if REPORT_TIME
       elapsed[0] = timer::elapsed(tic, true);
     #endif
-  }
-
-  // filter wavelets in the vicinity of each mesh point
-  for (int i = 0; i < num_points; ++i) {
-    Matrix radii = smoothing_lengths[i];
-    extents[i] = Wonton::Point<DIM>(radii[0]);
   }
 
   Filter search(wave, grid, extents, extents, WeightCenter::Gather, 1);

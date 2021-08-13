@@ -124,10 +124,40 @@ private:
   std::vector<double> h = {1.0, 1.0};
 
   /**
-   * @brief Smoothing lengths
+   * @brief Smoothing lengths.
    *
    */
   Wonton::vector<Matrix> smoothing_lengths;
+
+  /**
+   * @brief Search radii for each mesh point.
+   *
+   */
+  Wonton::vector<Point<DIM>> extents;
+
+  /**
+   * @brief List of wavelets in the vicinity of each mesh point.
+   *
+   */
+  Wonton::vector<std::vector<int>> neighbors;
+
+  /**
+   * @brief Shape functions type on each mesh point.
+   *
+   */
+  Wonton::vector<Weight::Kernel> kernels;
+
+  /**
+   * @brief Support of shape functions on each mesh point.
+   *
+   */
+  Wonton::vector<Weight::Geometry> support;
+
+  /**
+   * @brief Remap weights.
+   *
+   */
+  Wonton::vector<std::vector<Wonton::Weights_t>> weights;
 
   /**
    * @brief Number of fields to remap.
