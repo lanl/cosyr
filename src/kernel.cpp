@@ -242,6 +242,7 @@ void calculate_fields(Kokkos::View<double*> emit_info,
   double const betaprime_y = emit_info(index_emit_wave + EMT_VEL_Y);
   double const gamma_e     = emit_info(index_emit_wave + EMT_GAMMA);
   double const gamma2      = std::pow(gamma_e, 2.0); // TODO: get gamma from Particle class
+  double beta = sqrt(1.0 - 1.0/gamma2);
   double const syn_cone    = min_emit_angle / gamma_e;
   double syn_cone_ulim = std::atan2(betaprime_y, betaprime_x);
   double const syn_cone_llim = syn_cone_ulim - syn_cone;
@@ -293,7 +294,7 @@ void calculate_fields(Kokkos::View<double*> emit_info,
     double const dis = sqrt(wpx * wpx + wpy * wpy);
 
     // convert to local (x',y') coordinate
-    //double const psi = dt_emt * beta;
+    double const psi = dt_emt * beta;
     double const wpxm = wpx - mesh_center_x;
     double const wpym = wpy - mesh_center_y;
     double const wpx_prime = wpxm * cos_mc_angle - wpym * sin_mc_angle;
@@ -333,9 +334,25 @@ void calculate_fields(Kokkos::View<double*> emit_info,
       double const acc_fld_y = qr_inv_denom * ((n_x * accel_x + n_y * accel_y)
                                * (n_y - betaprime_y) - one_minus_n_dot_betaprime * accel_y);
 
-      emitted_field[0](index_wavelet) = -acc_fld_x * n_y + acc_fld_y * n_x; //B^{rad}_{z}
-      emitted_field[1](index_wavelet) =  acc_fld_x * wpx + acc_fld_y * wpy; // E^{rad}_{t}
+      double Brad_z = -acc_fld_x * n_y + acc_fld_y * n_x; //B^{rad}_{z}
+      double Erad_t =  acc_fld_x * wpx + acc_fld_y * wpy; // E^{rad}_{t}
+
+      // beta is along direction of the vector (cos_mc_angle, -sin_mc_angle)
+      // FIXME: need to pass beta value for proper betaprime_dot_beta 
+      double betaprime_dot_beta = beta*(cos_mc_angle * betaprime_x - sin_mc_angle * betaprime_y);
+
+      #ifdef MIX_KERNEL
+      emitted_field[0](index_wavelet) = 0.0; 
+      //emitted_field[0](index_wavelet) = qr / one_minus_n_dot_betaprime; // phi  
+      emitted_field[1](index_wavelet) = Erad_t - beta*Brad_z; 
+      //emitted_field[2](index_wavelet) = qr * (1.0-betaprime_dot_beta) / one_minus_n_dot_betaprime; // phi-beta*As 
+      emitted_field[2](index_wavelet) = qr * (1.0-beta*beta*cos(psi)) / one_minus_n_dot_betaprime; // phi-beta*As 
+
+      #else 
+      emitted_field[0](index_wavelet) = Brad_z; //B^{rad}_{z}
+      emitted_field[1](index_wavelet) = Erad_t; // E^{rad}_{t}
       emitted_field[2](index_wavelet) =  acc_fld_x * wpy - acc_fld_y * wpx; // E^{rad}_{s}
+      #endif
     }
 
     emt_angle -= emt_angle_interval;
