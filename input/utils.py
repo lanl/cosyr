@@ -118,7 +118,7 @@ def load_file(path, ext="npy"):
 
 ## load wavelets
 def load_wavelets(path2wavelets, X_coord_file="scaled_xprime_sub.csv", Y_coord_file="scaled_yprime_sub.csv", 
-                  fld_file="EsRad_sub.csv", unscale_coord=False, _gamma=10, broadcast=True) :
+                  fld_file="EsRad_sub.csv", unscale_coord=False, _gamma=10, broadcast=True, filter=False, filter_exp="np.where(wx<0.0)") :
     import numpy as np
     import os.path
 
@@ -147,8 +147,20 @@ def load_wavelets(path2wavelets, X_coord_file="scaled_xprime_sub.csv", Y_coord_f
        wx = comm.bcast(wx, root=0)
        wy = comm.bcast(wy, root=0)
        field = comm.bcast(field, root=0)
+    
+    if (filter) :
+        # select wavelets based on filter
+        filtered_x = eval(filter_exp)  
+        wx_filtered = wx[filtered_x]
+        wy_filtered = wy[filtered_x]
+        fld_filtered = field[:,filtered_x]
+    else :
+        wx_filtered = wx
+        wy_filtered = wy
+        fld_filtered = field
 
-    return (wx, wy, field)
+    #print("wavelets count: ", wx.shape)    
+    return (wx_filtered, wy_filtered, fld_filtered)
 
 
 def load_wavelets_with_analytic_field(filename, assign_field_value=False, unscale_coord=False, _gamma=10, analytic_func=None, *func_args) :
