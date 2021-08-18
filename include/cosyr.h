@@ -39,8 +39,8 @@
 #include "portage/estimate/estimate.h"
 
 // kernel
-// choice for kernel, default is mixed transverse-field/longitudinal-potential kernel 
-#define MIX_KERNEL
+// choice for kernel, default is field only kernel 
+// #define MIX_KERNEL
 
 // simulation
 #ifndef DIM
