@@ -98,6 +98,12 @@ public:
   Cabana::AoSoA<Fields, HostSpace> fields;
 
   /**
+   * @brief Gradients of remapped field at each point.
+   *
+   */
+  Cabana::AoSoA<Fields, HostSpace> gradients[DIM];
+
+  /**
    * @brief Create a new moving mesh.
    *
    * @param input: cached input parameters.

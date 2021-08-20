@@ -27,6 +27,9 @@ Mesh::Mesh(const Input& input) : input(input) {
 
   points.resize(num_points);
   fields.resize(num_points);
+  for (auto&& derivative : gradients) {
+    derivative.resize(num_points);
+  }
 
 // clear mesh fields 
 #if DIM==3
@@ -42,10 +45,28 @@ Mesh::Mesh(const Input& input) : input(input) {
 
   for (int i = 0; i < num_fields; i++) {
     auto current = field_slices.begin()[i];
-    for (int j = 0; j < current.size(); ++j) {
-      current(j) = 0.0;
+    auto const range = HostRange(0, current.size());
+    Kokkos::parallel_for(range, [&](int j){ current(j) = 0.0; });
+  }
+
+  // clear gradients
+  for (auto&& derivative : gradients) {
+    #if DIM==3
+    auto derivative_slices = { Cabana::slice<F1>(derivative),
+                               Cabana::slice<F2>(derivative),
+                               Cabana::slice<F3>(derivative),
+                               Cabana::slice<F4>(derivative) };
+#else
+    auto derivative_slices = { Cabana::slice<F1>(derivative),
+                               Cabana::slice<F2>(derivative),
+                               Cabana::slice<F3>(derivative) };
+#endif
+    for (int i = 0; i < num_fields; ++i) {
+      auto current = derivative_slices.begin()[i];
+      auto const range = HostRange(0, current.size());
+      Kokkos::parallel_for(range, [&](int j){ current(j) = 0.0; });
     }
-  }  
+  }
 }
 
 /* -------------------------------------------------------------------------- */
