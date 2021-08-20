@@ -362,7 +362,7 @@ void Remap::estimate_gradients() {
                         weights.begin(), gradients[d].begin(), estimator);
 
       // store within mesh
-      auto derivative = mesh.get_slice(mesh.gradients[d], d);
+      auto derivative = mesh.get_slice(mesh.gradients[d], i);
       Kokkos::parallel_for(HostRange(0, mesh.num_points),
                            [&](int j) { derivative(j) = gradients[d][j]; });
     }
