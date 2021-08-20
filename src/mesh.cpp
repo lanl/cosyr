@@ -50,21 +50,11 @@ Mesh::Mesh(const Input& input) : input(input) {
   }
 
   // clear gradients
-  for (auto&& derivative : gradients) {
-    #if DIM==3
-    auto derivative_slices = { Cabana::slice<F1>(derivative),
-                               Cabana::slice<F2>(derivative),
-                               Cabana::slice<F3>(derivative),
-                               Cabana::slice<F4>(derivative) };
-#else
-    auto derivative_slices = { Cabana::slice<F1>(derivative),
-                               Cabana::slice<F2>(derivative),
-                               Cabana::slice<F3>(derivative) };
-#endif
+  for (int d = 0; d < DIM; ++d) {
     for (int i = 0; i < num_fields; ++i) {
-      auto current = derivative_slices.begin()[i];
-      auto const range = HostRange(0, current.size());
-      Kokkos::parallel_for(range, [&](int j){ current(j) = 0.0; });
+      auto derivative = get_slice(gradients[d], i);
+      auto const range = HostRange(0, derivative.size());
+      Kokkos::parallel_for(range, [&](int j){ derivative(j) = 0.0; });
     }
   }
 }
