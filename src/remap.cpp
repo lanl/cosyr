@@ -31,6 +31,7 @@ Remap::Remap(Input& in_input,
   support.resize(num_points, Weight::ELLIPTIC);
   weights.resize(num_points);
   smoothing_lengths.resize(num_points);
+  smoothing_gradient.resize(num_points);
 
   // approximate cell sizes in circumferential and radial directions.
   double hc = input.kernel.radius * input.mesh.span_angle / (input.mesh.num_hor - 1);
@@ -51,6 +52,15 @@ Remap::Remap(Input& in_input,
   // set search radii
   Kokkos::parallel_for(HostRange(0, num_points),
                        [&](int i) { extents[i] = {h[0], h[1] }; });
+
+  // setup for gradients estimation
+  std::vector<double> const h_unscaled = { hc, hr };
+  Kokkos::parallel_for(HostRange(0, num_points),
+                       [&](int i) { smoothing_gradient[i] = Matrix(1, h_unscaled); });
+
+  for (auto&& derivative : gradients) {
+    derivative.resize(num_points);
+  }
 
   gamma = input.kernel.motion_params[0];
   dtdx = input.kernel.dt / hc;
@@ -317,6 +327,44 @@ void Remap::run(int particle, bool accumulate, bool rescale, double scaling) {
     }
     if (rescale) {
       Kokkos::parallel_for(range, [&](int j) { field(j) *= scaling; });
+    }
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+void Remap::estimate_gradients() {
+
+  using Accumulator = Portage::Accumulate<DIM, Wonton::Swarm<DIM>, Wonton::Swarm<DIM>>;
+  using Estimator = Portage::Estimate<DIM, Wonton::SwarmState<DIM>>;
+
+  // step 1: set neighbors list for each point which only consists of the point itself
+  Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                    grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                    neighbors.begin(),
+                    [&](int id) { return std::vector<int>(1, id); });
+
+  // step 2: compute weights using linear basis functions
+  Accumulator accumulator(grid, grid, Portage::LocalRegression, WeightCenter::Gather,
+                          kernels, support, smoothing_gradient, basis::Linear);
+  Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                    grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                    neighbors.begin(), weights.begin(), accumulator);
+
+  // step 3: estimate gradient of each remapped field
+  Estimator estimator(target);
+
+  for (int i = 0; i < num_fields; i++) {
+    for (int d = 0; d < DIM; ++d) {
+      // estimate derivative component
+      estimator.set_variable(fields[i], d + 1);
+      Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                        grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                        weights.begin(), gradients[d].begin(), estimator);
+
+      // store within mesh
+      auto derivative = mesh.get_slice(mesh.gradients[d], d);
+      Kokkos::parallel_for(HostRange(0, mesh.num_points),
+                           [&](int j) { derivative(j) = gradients[d][j]; });
     }
   }
 }

@@ -102,6 +102,19 @@ private:
   void run(int particle, bool accumulate, bool rescale, double scaling);
 
   /**
+   * @brief Estimate gradients of remapped field on mesh.
+   *
+   * The derivatives of each interpolated field is estimated using the
+   * local regression algorithm by simulating a remap of those fields
+   * from the mesh to itself. By using linear basis functions, we can
+   * compute the values of the shape functions which can be used to
+   * estimate both the field and its derivatives.
+   * This step has to be done in a separate sweep because the interpolated
+   * fields need to be accumulated for all particles prior to it.
+   */
+  void estimate_gradients();
+
+  /**
    * @brief Print remap info.
    *
    * @param count_active: number of active wavelets.
@@ -128,6 +141,12 @@ private:
    *
    */
   Wonton::vector<Matrix> smoothing_lengths;
+
+  /**
+   * @brief Snoothing lengths for gradients estimation.
+   *
+   */
+  Wonton::vector<Matrix> smoothing_gradient;
 
   /**
    * @brief Search radii for each mesh point.
@@ -158,6 +177,12 @@ private:
    *
    */
   Wonton::vector<std::vector<Wonton::Weights_t>> weights;
+
+  /**
+   * @brief Gradients of remapped field
+   *
+   */
+  Wonton::vector<double> gradients[DIM];
 
   /**
    * @brief Number of fields to remap.
