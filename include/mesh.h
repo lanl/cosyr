@@ -124,6 +124,27 @@ public:
    */
   void sync();
 
+  /**
+   * @brief Retrieve data slices corresponding to field index.
+   *
+   * @tparam AoSoA_t: type of array.
+   * @param array: the given array.
+   * @param index: the field index.
+   * @return the corresponding slice.
+   */
+  template<class AoSoA_t>
+  auto get_slice(AoSoA_t const& array, int index) {
+    switch (index) {
+      case 0: return Cabana::slice<F1>(array);
+      case 1: return Cabana::slice<F2>(array);
+      case 2: return Cabana::slice<F3>(array);
+  #if DIM == 3
+      case 3: return Cabana::slice<F4>(array);
+  #endif
+      default: throw std::runtime_error("invalid field index");
+    }
+  }
+
 private:
   /**
    * @brief Reference to simulation parameters.
