@@ -348,8 +348,6 @@ void Remap::estimate_gradients() {
   }
 
   // step 1: set neighbors list for each mesh point
-  Kokkos::parallel_for(range, [&](int i) { extents[i] = h_unscaled; });
-
   Filter search(grid, grid, extents, extents, WeightCenter::Gather, 1);
   Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
                     grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
