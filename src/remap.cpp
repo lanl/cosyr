@@ -337,6 +337,15 @@ void Remap::estimate_gradients() {
   using Accumulator = Portage::Accumulate<DIM, Wonton::Swarm<DIM>, Wonton::Swarm<DIM>>;
   using Estimator = Portage::Estimate<DIM, Wonton::SwarmState<DIM>>;
 
+  // step 0: update the target field with the accumulated or rescaled values
+  for (int f = 0; f < num_fields; ++f) {
+    auto slice = mesh.get_slice(mesh.fields, f);
+    auto& remapped = target.get_field(fields[f]);
+    Wonton::pointer<double> updated_field(remapped.data());
+    Kokkos::parallel_for(HostRange(0, mesh.num_points),
+                         [&](int j) { updated_field[j] = slice(j); });
+  }
+
   // step 1: set neighbors list for each point which only consists of the point itself
   Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
                     grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
