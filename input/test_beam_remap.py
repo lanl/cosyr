@@ -8,7 +8,7 @@ from input.misc import *
 
 ####################### Preprocessing ##########################
 
-run_name = "test_beam_remap_g1000"
+run_name = "test_beam_remap_gradients"
 
 ## electron and trajectory
 gamma=1000
@@ -44,7 +44,7 @@ remap_verbose = False               # print remap statistics
 
 # electron beam
 beam_charge = 0.01                 # nC
-num_particles = 3000             # number of particles
+num_particles = 9000             # number of particles
 trajectory_type = 2                # 1: straight line, 2: circular, 3: sinusoidal
 parameters[0] = gamma              # central energy for all types
 parameters[1] = 100.0              # propagation angle for type 1, radius (cm) for type 2, frequency for type 3
