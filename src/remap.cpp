@@ -370,7 +370,7 @@ void Remap::estimate_gradients() {
 }
 
 /* -------------------------------------------------------------------------- */
-void Remap::interpolate(int step, double scaling) {
+void Remap::interpolate(int step, double scaling, bool compute_gradients) {
 
   bool use_loaded_only = input.wavelets.found and not input.wavelets.subcycle;
 
@@ -417,6 +417,8 @@ void Remap::interpolate(int step, double scaling) {
           print_progress(j, last_particle);
         }
       }
+
+      if (compute_gradients) { estimate_gradients(); }
     }
 
     MPI_Barrier(input.mpi.comm);

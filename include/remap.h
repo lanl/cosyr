@@ -36,8 +36,9 @@ public:
    *
    * @param step: current step.
    * @param scaling: field scaling factor.
+   * @param compute_gradients: whether to compute gradients or not.
    */
-  void interpolate(int step, double scaling);
+  void interpolate(int step, double scaling, bool compute_gradients = false);
 
   /**
    * @brief Check whether to remap for current step or not.
