@@ -138,6 +138,12 @@ private:
   std::vector<double> h = {1.0, 1.0};
 
   /**
+   * @brief Unscaled axis lengths for support of weight functions.
+   *
+   */
+  std::vector<double> h_unscaled = {1.0, 1.0};
+
+  /**
    * @brief Smoothing lengths.
    *
    */
