@@ -333,6 +333,10 @@ void Remap::run(int particle, bool accumulate, bool rescale, double scaling) {
 /* -------------------------------------------------------------------------- */
 void Remap::estimate_gradients() {
 
+  MPI_Barrier(input.mpi.comm);
+
+  collect_grid();
+
   using Filter = Portage::SearchPointsBins<DIM, Wonton::Swarm<DIM>, Wonton::Swarm<DIM>>;
   using Accumulator = Portage::Accumulate<DIM, Wonton::Swarm<DIM>, Wonton::Swarm<DIM>>;
   using Estimator = Portage::Estimate<DIM, Wonton::SwarmState<DIM>>;
@@ -394,12 +398,14 @@ void Remap::estimate_gradients() {
       auto derivative = mesh.get_slice(mesh.gradients[d], i);
       Kokkos::parallel_for(HostRange(0, mesh.num_points),
                            [&](int j) { derivative(j) = gradients[d][j]; });
-
+#ifdef DEBUG
       for (int c = 0; c < mesh.num_points; ++c) {
         std::cout << "derivative["<< d <<"]["<< c <<"] = " << derivative(c) << std::endl;
       }
+#endif
     }
   }
+  // no need for MPI reduction anymore
 }
 
 /* -------------------------------------------------------------------------- */
@@ -449,8 +455,6 @@ void Remap::interpolate(int step, double scaling, bool compute_gradients) {
           accumulate = true;
           print_progress(j, last_particle);
         }
-
-        if (compute_gradients) { estimate_gradients(); }
       }
     }
 
@@ -460,6 +464,9 @@ void Remap::interpolate(int step, double scaling, bool compute_gradients) {
     timer.start("mesh_sync");
     mesh.sync();
     timer.stop("mesh_sync");
+
+    // compute the gradients once the field is updated
+    if (compute_gradients) { estimate_gradients(); }
   }
 }
 

@@ -217,27 +217,6 @@ void Mesh::sync() {
         field(j) = buffer[j + offset];
       }
     }
-
-    // update gradients
-    for (int d = 0; d < DIM; ++d) {
-      for (int i = 0; i < num_fields; ++i) {
-        int const offset = i * num_points;
-        auto derivative = get_slice(gradients[d], i);
-        for (int j = 0; j < num_points; ++j) {
-          buffer[j + offset] = derivative(j);
-        }
-      }
-
-      MPI_Allreduce(MPI_IN_PLACE, buffer, count, MPI_DOUBLE, MPI_SUM, input.mpi.comm);
-
-      for (int i = 0; i < num_fields; i++) {
-        int const offset = i * num_points;
-        auto derivative = get_slice(gradients[d], i);
-        for (int j = 0; j < num_points; ++j) {
-          derivative(j) = buffer[j + offset];
-        }
-      }
-    }
   }
 }
 
