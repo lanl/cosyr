@@ -366,7 +366,7 @@ void Remap::estimate_gradients() {
 
   // step 2: compute weights using linear basis functions
   Accumulator accumulator(grid, grid, Portage::LocalRegression, WeightCenter::Gather,
-                          kernels, support, smoothing_gradient, basis::Linear);
+                          kernels, support, smoothing_lengths, basis::Linear);
   Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
                     grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
                     neighbors.begin(), weights.begin(), accumulator);
