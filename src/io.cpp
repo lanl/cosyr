@@ -252,20 +252,20 @@ void IO::dump_mesh(int step) const {
 
     if (file.good()) {
 
-      auto deriv_x = { Cabana::slice<F1>(mesh.gradients[0]),
-                       Cabana::slice<F2>(mesh.gradients[0]),
-                       Cabana::slice<F3>(mesh.gradients[0]) };
+      auto const dx_f1 = Cabana::slice<F1>(mesh.gradients[0]);
+      auto const dx_f2 = Cabana::slice<F2>(mesh.gradients[0]);
+      auto const dx_f3 = Cabana::slice<F3>(mesh.gradients[0]);
+      auto const dy_f1 = Cabana::slice<F1>(mesh.gradients[1]);
+      auto const dy_f2 = Cabana::slice<F2>(mesh.gradients[1]);
+      auto const dy_f3 = Cabana::slice<F3>(mesh.gradients[1]);
 
-      auto deriv_y = { Cabana::slice<F1>(mesh.gradients[1]),
-                       Cabana::slice<F2>(mesh.gradients[1]),
-                       Cabana::slice<F3>(mesh.gradients[1]) };
-
-      file << "# f1-dx, f2-dx, f3-dx, f1-dy, f2-dy, f3-dy" << "\n";
+      file << "# dx_f1, dy_f1, dx_f2, dy_f2, dy_f3, dx_f3" << "\n";
       file << std::setprecision(12);
 
       for (int i = 0; i < mesh.num_points; i++) {
-        file << deriv_x.begin()[0](i) << "," << deriv_x.begin()[1](i) << "," << deriv_x.begin()[2](i) << ",";
-        file << deriv_y.begin()[0](i) << "," << deriv_y.begin()[1](i) << "," << deriv_y.begin()[2](i) << "\n";
+        file << dx_f1(i) << ", " << dy_f1(i) << ", ";
+        file << dx_f2(i) << ", " << dy_f2(i) << ", ";
+        file << dx_f3(i) << ", " << dy_f3(i) << "\n";
       }
 
     } else
