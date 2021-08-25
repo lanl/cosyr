@@ -416,9 +416,9 @@ void Remap::interpolate(int step, double scaling, bool compute_gradients) {
           accumulate = true;
           print_progress(j, last_particle);
         }
-      }
 
-      if (compute_gradients) { estimate_gradients(); }
+        if (compute_gradients) { estimate_gradients(); }
+      }
     }
 
     MPI_Barrier(input.mpi.comm);
