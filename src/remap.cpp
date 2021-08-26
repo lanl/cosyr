@@ -34,6 +34,7 @@ Remap::Remap(Input& in_input,
   weights.resize(num_points);
   smoothing_lengths.resize(num_points);
   gradients.resize(num_points);
+  stencils.resize(num_points);
 
   // approximate cell sizes in circumferential and radial directions.
   h_unscaled[0] = input.kernel.radius * input.mesh.span_angle / (input.mesh.num_hor - 1);
