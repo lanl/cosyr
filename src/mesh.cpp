@@ -217,6 +217,8 @@ void Mesh::sync() {
         field(j) = buffer[j + offset];
       }
     }
+
+    MPI_Barrier(input.mpi.comm);
   }
 }
 
