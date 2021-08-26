@@ -1,6 +1,7 @@
 #include "remap.h"
 
 #include <memory>
+#include <lsfits.h>
 
 namespace cosyr {
 
@@ -32,7 +33,7 @@ Remap::Remap(Input& in_input,
   support.resize(num_points, Weight::ELLIPTIC);
   weights.resize(num_points);
   smoothing_lengths.resize(num_points);
-  smoothing_gradient.resize(num_points);
+  gradients.resize(num_points);
 
   // approximate cell sizes in circumferential and radial directions.
   h_unscaled[0] = input.kernel.radius * input.mesh.span_angle / (input.mesh.num_hor - 1);
@@ -53,14 +54,6 @@ Remap::Remap(Input& in_input,
   // set search radii
   Kokkos::parallel_for(HostRange(0, num_points),
                        [&](int i) { extents[i] = {h[0], h[1] }; });
-
-  // setup for gradients estimation
-  Kokkos::parallel_for(HostRange(0, num_points),
-                       [&](int i) { smoothing_gradient[i] = Matrix(1, h_unscaled); });
-
-  for (auto&& derivative : gradients) {
-    derivative.resize(num_points);
-  }
 
   gamma = input.kernel.motion_params[0];
   dtdx = input.kernel.dt / h_unscaled[0];
@@ -330,9 +323,86 @@ void Remap::run(int particle, bool accumulate, bool rescale, double scaling) {
 }
 
 /* -------------------------------------------------------------------------- */
-void Remap::estimate_gradients() {
+void Remap::estimate_gradients_least_squares() {
 
-  MPI_Barrier(input.mpi.comm);
+  // TODO: do this only once for all time steps
+  // step 0: update mesh points coordinates
+  collect_grid();
+
+  // step 1: retrieve the neighbors of each mesh point
+  using Filter = Portage::SearchPointsBins<DIM, Wonton::Swarm<DIM>, Wonton::Swarm<DIM>>;
+
+  Filter search(grid, grid, extents, extents, WeightCenter::Gather, 1);
+  Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                    grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                    neighbors.begin(), search);
+
+  // enrich each list of neighbors by prepending it with the current point index
+  Wonton::for_each(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                   grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                   [&](int i) {
+                     std::vector<int> indices = neighbors[i];
+                     indices.emplace(indices.begin(), i);
+                     neighbors[i] = indices;
+                   });
+
+  // retrieve the coordinates of each point of the stencil
+  Wonton::vector<std::vector<Point<DIM>>> coordinates(mesh.num_points);
+  Wonton::transform(neighbors.begin(), neighbors.end(), coordinates.begin(),
+                    [&](auto const& indices) {
+                      std::vector<Wonton::Point<DIM>> points;
+                      for (int j : indices) {
+                        points.emplace_back(grid.get_particle_coordinates(j));
+                      }
+                      return points;
+                    });
+
+  // step 2: build and cache stencil matrices
+  Wonton::transform(coordinates.begin(), coordinates.end(), stencils.begin(),
+                    [&](auto const& points) {
+                      return Wonton::build_gradient_stencil_matrices<DIM>(points, true);
+                    });
+
+  for (int f = 0; f < num_fields; ++f) {
+
+    auto const field = mesh.get_slice(mesh.fields, f);
+
+    // retrieve field values
+    Wonton::vector<std::vector<double>> values(mesh.num_points);
+    Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                      grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                      values.begin(),
+                      [&](int i) {
+                        std::vector<int> const& indices = neighbors[i];
+                        std::vector<double> data;
+                        data.reserve(indices.size());
+                        for (int j : indices) { data.emplace_back(field(j)); }
+                        return data;
+                      });
+
+    // solve equations
+    Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                      grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                      gradients.begin(),
+                      [&](int i) {
+                        std::vector<Wonton::Matrix> const& stencil = stencils[i];
+                        return Wonton::ls_gradient<DIM>(stencil[0], stencil[1], values[i]);
+                      });
+
+    // store back to mesh
+    auto dx = Cabana::slice<X>(mesh.gradients[f]);
+    auto dy = Cabana::slice<Y>(mesh.gradients[f]);
+    Kokkos::parallel_for(HostRange(0, mesh.num_points),
+                         [&](int j) {
+                           Wonton::Vector<DIM> const nabla = gradients[j];
+                           dx(j) = nabla[0];
+                           dy(j) = nabla[1];
+                         });
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+void Remap::estimate_gradients() {
 
   collect_grid();
 
@@ -381,6 +451,7 @@ void Remap::estimate_gradients() {
   // step 3: estimate gradient of each remapped field
   Estimator estimator(target);
 
+  /*
   for (int i = 0; i < num_fields; i++) {
     for (int d = 0; d < DIM; ++d) {
       // estimate derivative component
@@ -403,7 +474,7 @@ void Remap::estimate_gradients() {
       }
 #endif
     }
-  }
+  }*/
   // no need for MPI reduction anymore
 }
 
@@ -465,7 +536,7 @@ void Remap::interpolate(int step, double scaling, bool compute_gradients) {
     timer.stop("mesh_sync");
 
     // compute the gradients once the field is updated
-    if (compute_gradients) { estimate_gradients(); }
+    if (compute_gradients) { estimate_gradients_least_squares(); }
   }
 }
 

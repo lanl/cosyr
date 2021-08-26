@@ -116,6 +116,19 @@ private:
   void estimate_gradients();
 
   /**
+   * @brief Estimate gradient of mesh fields using a least square
+   *        fit approximation.
+   *
+   * For a given mesh point and a given field, it solves the least squares
+   * equation (A^T.A).X = (A^T.F) where A is the matrix of distances between
+   * each point of the stencil and the current point, and F is the vector
+   * of field values at each point of the stencil. The algebraic equation
+   * is solved by an optimized LAPACK kernel if available, or using the
+   * inverse method if not.
+   */
+  void estimate_gradients_least_squares();
+
+  /**
    * @brief Print remap info.
    *
    * @param count_active: number of active wavelets.
@@ -150,12 +163,6 @@ private:
   Wonton::vector<Matrix> smoothing_lengths;
 
   /**
-   * @brief Snoothing lengths for gradients estimation.
-   *
-   */
-  Wonton::vector<Matrix> smoothing_gradient;
-
-  /**
    * @brief Search radii for each mesh point.
    *
    */
@@ -186,10 +193,20 @@ private:
   Wonton::vector<std::vector<Wonton::Weights_t>> weights;
 
   /**
-   * @brief Gradients of remapped field
+   * @brief Gradients of current field
    *
    */
-  Wonton::vector<double> gradients[DIM];
+  Wonton::vector<Wonton::Vector<DIM>> gradients;
+
+  /**
+   * @brief Stencil matrices involved in gradient estimation.
+   *
+   * It stores the matrices (A^T.A)^-1 and A^T involved in the
+   * resolution of the least square equation (A^T.A).X = A^T.F
+   * These matrices are the same for each field so they are
+   * cached for reuse purposes.
+   */
+  Wonton::vector<std::vector<Wonton::Matrix>> stencils;
 
   /**
    * @brief Number of fields to remap.
