@@ -25,6 +25,7 @@ Remap::Remap(Input& in_input,
   num_fields = std::min(input.wavelets.num_fields, DIM + 1);
 
   int const num_points = mesh.num_points;
+  grid.resize(mesh.num_points);
   extents.resize(num_points);
   neighbors.resize(num_points);
   kernels.resize(num_points, Weight::B4);
@@ -166,8 +167,6 @@ void Remap::collect_active_wavelets(int index_particle, int num_active) {
 void Remap::collect_grid() {
 
   // Create the particle swarm corresponding to the mesh vertices
-  grid.resize(mesh.num_points);
-
   auto x = Cabana::slice<X>(mesh.points);
   auto y = Cabana::slice<Y>(mesh.points);
   #if DIM==3
