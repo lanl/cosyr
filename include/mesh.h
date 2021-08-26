@@ -83,7 +83,7 @@ public:
   /**
    * @brief Number of fields at each point.
    */
-  int num_fields = DIM + 1;
+  static constexpr int num_fields = DIM + 1;
 
   /**
    * @brief Points coordinates: normal|vertical|horizontal
@@ -98,10 +98,10 @@ public:
   Cabana::AoSoA<Fields, HostSpace> fields;
 
   /**
-   * @brief Gradients of remapped field at each point.
+   * @brief Gradients of mesh fields at each point.
    *
    */
-  Cabana::AoSoA<Fields, HostSpace> gradients[DIM];
+  Cabana::AoSoA<Coords, HostSpace> gradients[num_fields];
 
   /**
    * @brief Create a new moving mesh.

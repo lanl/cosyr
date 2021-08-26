@@ -252,12 +252,12 @@ void IO::dump_mesh(int step) const {
 
     if (file.good()) {
 
-      auto const dx_f1 = Cabana::slice<F1>(mesh.gradients[0]);
-      auto const dx_f2 = Cabana::slice<F2>(mesh.gradients[0]);
-      auto const dx_f3 = Cabana::slice<F3>(mesh.gradients[0]);
-      auto const dy_f1 = Cabana::slice<F1>(mesh.gradients[1]);
-      auto const dy_f2 = Cabana::slice<F2>(mesh.gradients[1]);
-      auto const dy_f3 = Cabana::slice<F3>(mesh.gradients[1]);
+      auto const dx_f1 = Cabana::slice<X>(mesh.gradients[0]);
+      auto const dx_f2 = Cabana::slice<X>(mesh.gradients[1]);
+      auto const dx_f3 = Cabana::slice<X>(mesh.gradients[2]);
+      auto const dy_f1 = Cabana::slice<Y>(mesh.gradients[0]);
+      auto const dy_f2 = Cabana::slice<Y>(mesh.gradients[1]);
+      auto const dy_f3 = Cabana::slice<Y>(mesh.gradients[2]);
 
       file << "# dx_f1, dy_f1, dx_f2, dy_f2, dy_f3, dx_f3" << "\n";
       file << std::setprecision(12);
