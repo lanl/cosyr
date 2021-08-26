@@ -333,7 +333,7 @@ void Remap::estimate_gradients_least_squares() {
   // step 1: retrieve the neighbors of each mesh point
   using Filter = Portage::SearchPointsBins<DIM, Wonton::Swarm<DIM>, Wonton::Swarm<DIM>>;
 
-  Filter search(grid, grid, extents, extents, WeightCenter::Gather, 1);
+  Filter search(grid, grid, extents, extents, WeightCenter::Gather, 3);
   Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
                     grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
                     neighbors.begin(), search);
@@ -347,6 +347,7 @@ void Remap::estimate_gradients_least_squares() {
                      neighbors[i] = indices;
                    });
 
+
   // retrieve the coordinates of each point of the stencil
   Wonton::vector<std::vector<Point<DIM>>> coordinates(mesh.num_points);
   Wonton::transform(neighbors.begin(), neighbors.end(), coordinates.begin(),
@@ -357,6 +358,7 @@ void Remap::estimate_gradients_least_squares() {
                       }
                       return points;
                     });
+
 
   // step 2: build and cache stencil matrices
   Wonton::transform(coordinates.begin(), coordinates.end(), stencils.begin(),
