@@ -299,7 +299,7 @@ void Remap::run(int particle, bool accumulate, bool rescale, double scaling) {
   auto const range = HostRange(0, mesh.num_points);
 
   for (int i = 0; i < num_fields; i++) {
-    auto slice = mesh.get_slice(mesh.fields, i);
+    auto slice = mesh.get_field_slice(mesh.fields, i);
     auto const& values = target.get_field(fields[i]);
 
     if (accumulate) {
@@ -356,12 +356,13 @@ void Remap::estimate_gradients() {
                       return Wonton::build_gradient_stencil_matrices<DIM>(points, true);
                     });
 
+  Wonton::vector<std::vector<double>> values(mesh.num_points);
+
   for (int f = 0; f < num_fields; ++f) {
 
-    auto const field = mesh.get_slice(mesh.fields, f);
+    auto const field = mesh.get_field_slice(mesh.fields, f);
 
     // retrieve field values
-    Wonton::vector<std::vector<double>> values(mesh.num_points);
     Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
                       grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
                       values.begin(),

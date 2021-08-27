@@ -133,7 +133,7 @@ public:
    * @return the corresponding slice.
    */
   template<class AoSoA_t>
-  auto get_slice(AoSoA_t const& array, int index) {
+  auto get_field_slice(AoSoA_t const& array, int index) {
     switch (index) {
       case 0: return Cabana::slice<F1>(array);
       case 1: return Cabana::slice<F2>(array);

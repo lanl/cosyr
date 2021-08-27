@@ -33,7 +33,7 @@ Mesh::Mesh(const Input& input) : input(input) {
   auto const range = HostRange(0, num_points);
 
   for (int f = 0; f < num_fields; ++f) {
-    auto slice = get_slice(fields, f);
+    auto slice = get_field_slice(fields, f);
     Kokkos::parallel_for(range, [&](int j){ slice(j) = 0.0; });
   }
 
