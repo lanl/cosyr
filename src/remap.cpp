@@ -65,36 +65,35 @@ Remap::Remap(Input& in_input,
 }
 
 /* -------------------------------------------------------------------------- */
-void Remap::collect_subcycle_wavelets() {
+void Remap::update_subcycle_wavelets(bool reset) {
 
-  wave.resize(input.wavelets.count);
-  Wonton::vector<double> field(input.wavelets.count);
+  int const num_wavelets = input.wavelets.count;
+  wave.resize(num_wavelets);
 
-  for (int j = 0; j < input.wavelets.count; j++) {
+  for (int j = 0; j < num_wavelets; j++) {
     #if DIM == 3
-      Wonton::Point<DIM> p(input.wavelets.x[j],
-                           input.wavelets.y[j],
-                           input.wavelets.z[j]);
+      wave.assign(j, { input.wavelets.x[j], input.wavelets.y[j], input.wavelets.z[j] });
     #else
-      Wonton::Point<DIM> p(input.wavelets.x[j], input.wavelets.y[j]);
+      wave.assign(j, { input.wavelets.x[j], input.wavelets.y[j] });
     #endif
-    wave.assign(j, p);
   }
 
-  // initialize a state manager for the field swarm and populate it
-  source.init(wave);
+  if (reset) {
+    // initialize a state manager for the field swarm and populate it
+    source.init(wave);
+    Wonton::vector<double> field(num_wavelets);
+    auto const range = HostRange(0, num_wavelets);
 
-  for (int i = 0; i < num_fields; ++i) {
-    int const k = i * input.wavelets.count;
-    for (int j = 0; j < input.wavelets.count; j++) {
-      field[j] = input.wavelets.field[j + k];
+    for (int i = 0; i < num_fields; ++i) {
+      int const k = i * num_wavelets;
+      Kokkos::parallel_for(range, [&](int j) { field[j] = input.wavelets.field[j + k]; });
+      source.add_field(fields[i], field);
     }
-    source.add_field(fields[i], field);
   }
 }
 
 /* -------------------------------------------------------------------------- */
-void Remap::collect_active_wavelets(int index_particle, int num_active) {
+void Remap::update_active_wavelets(int istart, int num_active) {
 
   bool const subcycle = input.wavelets.found and input.wavelets.subcycle;
   int const num_loaded = (subcycle ? input.wavelets.count : 0);
@@ -105,35 +104,33 @@ void Remap::collect_active_wavelets(int index_particle, int num_active) {
   // step 2: copy loaded wavelets
   if (subcycle) {
     for (int j = 0; j < num_loaded; j++) {
-      int const k = j + (index_particle * num_loaded);
+      int const k = j + (istart * num_loaded);
       #if DIM == 3
-        Wonton::Point<DIM> p(wavelets.loaded.host.coords(k, WT_POS_X),
-                             wavelets.loaded.host.coords(k, WT_POS_Y),
-                             wavelets.loaded.host.coords(k, WT_POS_Z));
+        wave.assign(j, { wavelets.loaded.host.coords(k, WT_POS_X),
+                         wavelets.loaded.host.coords(k, WT_POS_Y),
+                         wavelets.loaded.host.coords(k, WT_POS_Z) });
       #else
-        Wonton::Point<DIM> p(wavelets.loaded.host.coords(k, WT_POS_X),
-                             wavelets.loaded.host.coords(k, WT_POS_Y));
+        wave.assign(j, { wavelets.loaded.host.coords(k, WT_POS_X),
+                         wavelets.loaded.host.coords(k, WT_POS_Y) });
       #endif
-      wave.assign(j, p);
     }
   }
 
   // step 1: copy active emitted wavelets
   int const num_emitted = num_active - num_loaded;
   int const total_emitted = input.kernel.num_wavefronts * input.kernel.num_dirs;
-  int const index_start = index_particle * total_emitted;
+  int const index_start = istart * total_emitted;
 
   for (int j = 0; j < num_emitted; j++) {
     int const k = j + index_start;
     #if DIM == 3
-      Wonton::Point<DIM> p(wavelets.emitted.host.coords(k, WT_POS_X),
-                           wavelets.emitted.host.coords(k, WT_POS_Y),
-                           wavelets.emitted.host.coords(k, WT_POS_Z));
+    wave.assign(j + num_loaded, { wavelets.emitted.host.coords(k, WT_POS_X),
+                                  wavelets.emitted.host.coords(k, WT_POS_Y),
+                                  wavelets.emitted.host.coords(k, WT_POS_Z) });
     #else
-      Wonton::Point<DIM> p(wavelets.emitted.host.coords(k, WT_POS_X),
-                           wavelets.emitted.host.coords(k, WT_POS_Y));
+      wave.assign(j + num_loaded, { wavelets.emitted.host.coords(k, WT_POS_X),
+                                    wavelets.emitted.host.coords(k, WT_POS_Y) });
     #endif
-    wave.assign(j + num_loaded, p);
   }
 
   source.init(wave);
@@ -142,7 +139,7 @@ void Remap::collect_active_wavelets(int index_particle, int num_active) {
     // step 4: copy all loaded fields
     if (subcycle) {
       for (int j = 0; j < num_loaded; ++j) {
-        int const k = j + (index_particle * num_loaded);
+        int const k = j + (istart * num_loaded);
         field[j] = wavelets.loaded.host.fields[i](k);
       }
     }
@@ -158,7 +155,7 @@ void Remap::collect_active_wavelets(int index_particle, int num_active) {
 }
 
 /* -------------------------------------------------------------------------- */
-void Remap::collect_grid(bool reset) {
+void Remap::update_mesh(bool reset) {
 
   // Create the particle swarm corresponding to the mesh vertices
   auto x = Cabana::slice<X>(mesh.points);
@@ -172,16 +169,14 @@ void Remap::collect_grid(bool reset) {
     for (int j = 0; j < mesh.resolution[1]; j++) {
       int const k = i * mesh.resolution[1] + j;
       #if DIM==3
-        Wonton::Point<DIM> p(x(k), y(k), z(k));
+        grid.assign(n++, { x(k), y(k), z(k) });
       #else
-        Wonton::Point<DIM> p(x(k), y(k));
+        grid.assign(n++, { x(k), y(k) });
       #endif
-      grid.assign(n++, p);
     } 
   }
 
   if (reset) {
-    // initialize the state whose values will be populated after remap.
     target.init(grid);
     for (int i = 0; i < num_fields; i++) {
       target.add_field<double>(fields[i], 0.0);
@@ -319,7 +314,7 @@ void Remap::run(int particle, bool accumulate, bool rescale, double scaling) {
 void Remap::estimate_gradients() {
 
   // step 0: update mesh points coordinates
-  collect_grid(false);
+  update_mesh(false);
 
   // step 1: retrieve the neighbors of each mesh point
   using Filter = Portage::SearchPointsBins<DIM, Wonton::Swarm<DIM>, Wonton::Swarm<DIM>>;
@@ -411,8 +406,8 @@ void Remap::interpolate(int step, double scaling, bool compute_gradients) {
     if (use_loaded_only) {
       // interpolate the prescribed field at prescribed wavelets
       print_info(input.wavelets.count);
-      collect_subcycle_wavelets();
-      collect_grid();
+      update_subcycle_wavelets();
+      update_mesh();
       run(0, accumulate, rescale, 1.0);
       print_progress();
 
@@ -436,8 +431,8 @@ void Remap::interpolate(int step, double scaling, bool compute_gradients) {
 
         for (int j = first_particle; j <= last_particle; j++) {
           print_info(count_active, ratio_loaded);
-          collect_active_wavelets(j, num_active[j]);
-          collect_grid();
+          update_active_wavelets(j, num_active[j]);
+          update_mesh();
           rescale = (j == last_particle);
           run(j, accumulate, rescale, scaling);
           accumulate = true;

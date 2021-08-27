@@ -50,25 +50,25 @@ public:
 
 private:
   /**
-   * @brief Collect loaded wavelets for subcycling.
+   * @brief Update loaded wavelets for subcycling.
    *
    */
-  void collect_subcycle_wavelets();
+  void update_subcycle_wavelets(bool reset = true);
 
   /**
-   * @brief Collect all active wavelets.
+   * @brief Update all active wavelets.
    *
    * @param istart: starting index or offset.
    * @param num_active: number of active wavelets.
    */
-  void collect_active_wavelets(int istart, int num_active);
+  void update_active_wavelets(int istart, int num_active);
 
   /**
    * @brief Collect mesh points and reset state if requested.
    *
    * @param reset: whether to reset the mesh state or not.
    */
-  void collect_grid(bool reset = true);
+  void update_mesh(bool reset = true);
 
   /**
    * @brief Compute smoothing lengths for each point.
@@ -104,15 +104,13 @@ private:
   void run(int particle, bool accumulate, bool rescale, double scaling);
 
   /**
-   * @brief Estimate gradient of mesh fields using a least square
-   *        fit approximation.
+   * @brief Estimate gradient of mesh fields using a least-squares fit approximation.
    *
-   * For a given mesh point and a given field, it solves the least squares
+   * For a given mesh point and a given field, it solves the normal
    * equation (A^T.A).X = (A^T.F) where A is the matrix of distances between
-   * each point of the stencil and the current point, and F is the vector
-   * of field values at each point of the stencil. The algebraic equation
-   * is solved by an optimized LAPACK kernel if available, or using the
-   * inverse method if not.
+   * the current point and each of its neighbor, and F is the vector of
+   * differences between field values at the current point and that of
+   * each of his neighbor.
    */
   void estimate_gradients();
 
