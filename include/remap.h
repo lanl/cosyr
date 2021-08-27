@@ -103,19 +103,6 @@ private:
   void run(int particle, bool accumulate, bool rescale, double scaling);
 
   /**
-   * @brief Estimate gradients of remapped field on mesh.
-   *
-   * The derivatives of each interpolated field is estimated using the
-   * local regression algorithm by simulating a remap of those fields
-   * from the mesh to itself. By using linear basis functions, we can
-   * compute the values of the shape functions which can be used to
-   * estimate both the field and its derivatives.
-   * This step has to be done in a separate sweep because the interpolated
-   * fields need to be accumulated for all particles prior to it.
-   */
-  void estimate_gradients();
-
-  /**
    * @brief Estimate gradient of mesh fields using a least square
    *        fit approximation.
    *
@@ -126,7 +113,7 @@ private:
    * is solved by an optimized LAPACK kernel if available, or using the
    * inverse method if not.
    */
-  void estimate_gradients_least_squares();
+  void estimate_gradients();
 
   /**
    * @brief Print remap info.

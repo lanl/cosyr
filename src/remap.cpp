@@ -324,7 +324,7 @@ void Remap::run(int particle, bool accumulate, bool rescale, double scaling) {
 }
 
 /* -------------------------------------------------------------------------- */
-void Remap::estimate_gradients_least_squares() {
+void Remap::estimate_gradients() {
 
   // TODO: do this only once for all time steps
   // step 0: update mesh points coordinates
@@ -405,83 +405,6 @@ void Remap::estimate_gradients_least_squares() {
 }
 
 /* -------------------------------------------------------------------------- */
-void Remap::estimate_gradients() {
-
-  collect_grid();
-
-  using Filter = Portage::SearchPointsBins<DIM, Wonton::Swarm<DIM>, Wonton::Swarm<DIM>>;
-  using Accumulator = Portage::Accumulate<DIM, Wonton::Swarm<DIM>, Wonton::Swarm<DIM>>;
-  using Estimator = Portage::Estimate<DIM, Wonton::SwarmState<DIM>>;
-
-  auto const range = HostRange(0, mesh.num_points);
-
-  // step 0: update the target field with the accumulated or rescaled values
-  for (int f = 0; f < num_fields; ++f) {
-    auto slice = mesh.get_slice(mesh.fields, f);
-    auto& remapped = target.get_field(fields[f]);
-    Wonton::pointer<double> updated_field(remapped.data());
-    Kokkos::parallel_for(range, [&](int j) { updated_field[j] = slice(j); });
-  }
-
-  // step 1: set neighbors list for each mesh point
-  Filter search(grid, grid, extents, extents, WeightCenter::Gather, 1);
-  Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
-                    grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
-                    neighbors.begin(), search);
-
-#ifdef DEBUG
-  for (int c = 0; c < mesh.num_points; ++c) {
-    std::vector<int> list = neighbors[c];
-    std::cout << "count neighbors["<< c <<"]: " << list.size() << std::endl;
-  }
-#endif
-
-  // step 2: compute weights using linear basis functions
-  Accumulator accumulator(grid, grid, Portage::LocalRegression, WeightCenter::Gather,
-                          kernels, support, smoothing_lengths, basis::Linear);
-  Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
-                    grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
-                    neighbors.begin(), weights.begin(), accumulator);
-#ifdef DEBUG
-  for (int c = 0; c < mesh.num_points; ++c) {
-    std::vector<Wonton::Weights_t> current = weights[c];
-    for (auto&& weight : current) {
-      std::cout << "weights["<< c <<"]: entity" << weight.entityID <<", first coeff: "<< weight.weights[0] << std::endl;
-    }
-  }
-#endif
-
-  // step 3: estimate gradient of each remapped field
-  Estimator estimator(target);
-
-  /*
-  for (int i = 0; i < num_fields; i++) {
-    for (int d = 0; d < DIM; ++d) {
-      // estimate derivative component
-      std::cout << "estimating gradient for "<< fields[i] << std::endl;
-      estimator.set_variable(fields[i], d + 1);
-      Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
-                        grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
-                        weights.begin(), gradients[d].begin(), estimator);
-//      for (int c = 0; c < mesh.num_points; ++c) {
-//        std::cout << "d["<< d <<"]["<< c <<"] = " << gradients[d][c] << std::endl;
-//      }
-
-      // store within mesh
-      auto derivative = mesh.get_slice(mesh.gradients[d], i);
-      Kokkos::parallel_for(HostRange(0, mesh.num_points),
-                           [&](int j) { derivative(j) = gradients[d][j]; });
-#ifdef DEBUG
-      for (int c = 0; c < mesh.num_points; ++c) {
-        std::cout << "derivative["<< d <<"]["<< c <<"] = " << derivative(c) << std::endl;
-      }
-#endif
-    }
-  }*/
-  // no need for MPI reduction anymore
-}
-
-/* -------------------------------------------------------------------------- */
 void Remap::interpolate(int step, double scaling, bool compute_gradients) {
 
   bool use_loaded_only = input.wavelets.found and not input.wavelets.subcycle;
@@ -539,7 +462,7 @@ void Remap::interpolate(int step, double scaling, bool compute_gradients) {
     timer.stop("mesh_sync");
 
     // compute the gradients once the field is updated
-    if (compute_gradients) { estimate_gradients_least_squares(); }
+    if (compute_gradients) { estimate_gradients(); }
   }
 }
 
