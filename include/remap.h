@@ -64,10 +64,11 @@ private:
   void collect_active_wavelets(int istart, int num_active);
 
   /**
-   * @brief Collect mesh points.
+   * @brief Collect mesh points and reset state if requested.
    *
+   * @param reset: whether to reset the mesh state or not.
    */
-  void collect_grid();
+  void collect_grid(bool reset = true);
 
   /**
    * @brief Compute smoothing lengths for each point.

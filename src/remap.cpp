@@ -158,7 +158,7 @@ void Remap::collect_active_wavelets(int index_particle, int num_active) {
 }
 
 /* -------------------------------------------------------------------------- */
-void Remap::collect_grid() {
+void Remap::collect_grid(bool reset) {
 
   // Create the particle swarm corresponding to the mesh vertices
   auto x = Cabana::slice<X>(mesh.points);
@@ -180,10 +180,12 @@ void Remap::collect_grid() {
     } 
   }
 
-  // initialize the swarm and state whose values will be populated after remap.
-  target.init(grid);
-  for (int i = 0; i < num_fields; i++) {
-    target.add_field<double>(fields[i], 0.0);
+  if (reset) {
+    // initialize the state whose values will be populated after remap.
+    target.init(grid);
+    for (int i = 0; i < num_fields; i++) {
+      target.add_field<double>(fields[i], 0.0);
+    }
   }
 }
 
@@ -316,9 +318,8 @@ void Remap::run(int particle, bool accumulate, bool rescale, double scaling) {
 /* -------------------------------------------------------------------------- */
 void Remap::estimate_gradients() {
 
-  // TODO: do this only once for all time steps
   // step 0: update mesh points coordinates
-  collect_grid();
+  collect_grid(false);
 
   // step 1: retrieve the neighbors of each mesh point
   using Filter = Portage::SearchPointsBins<DIM, Wonton::Swarm<DIM>, Wonton::Swarm<DIM>>;
@@ -374,7 +375,7 @@ void Remap::estimate_gradients() {
                         return data;
                       });
 
-    // solve equations
+    // build right-hand sides and solve equations
     Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
                       grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
                       gradients.begin(),
