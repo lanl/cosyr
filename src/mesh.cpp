@@ -177,6 +177,10 @@ void Mesh::move(const double* new_position, const double* new_velocity) {
 void Mesh::sync() {
 
   if (input.mpi.num_ranks > 1) {
+    if (input.mpi.rank == 0) {
+      std::cout << "synchronize mesh ... " << std::flush;
+    }
+
     // TODO: use either custom MPI data type or Cabana MPI functionality
     // example: https://github.com/ECP-copa/Cabana/blob/master/example/tutorial
     // /04_aosoa_advanced_unmanaged/advanced_aosoa_unmanaged.cpp
@@ -206,6 +210,7 @@ void Mesh::sync() {
     }
 
     MPI_Barrier(input.mpi.comm);
+    if (input.mpi.rank == 0) { std::cout << "done." << std::endl; }
   }
 }
 

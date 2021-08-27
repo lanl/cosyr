@@ -311,6 +311,10 @@ void Remap::run(int particle, bool accumulate, bool rescale, double scaling) {
 /* -------------------------------------------------------------------------- */
 void Remap::estimate_gradients() {
 
+  if (input.mpi.rank != 0) { return; }
+
+  std::cout << "estimate gradients ... " << std::flush;
+
   // step 0: update mesh points coordinates
   update_mesh(false);
 
@@ -389,6 +393,8 @@ void Remap::estimate_gradients() {
                            dy(j) = nabla[1];
                          });
   }
+
+  std::cout << "done" << std::endl;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -449,7 +455,12 @@ void Remap::interpolate(int step, double scaling) {
     timer.stop("mesh_sync");
 
     // compute the gradients once the field is updated
-    if (input.remap.gradient) { estimate_gradients(); }
+    if (input.remap.gradient and step > 0) {
+      timer.start("gradients");
+      estimate_gradients();
+      MPI_Barrier(input.mpi.comm);
+      timer.stop("gradients");
+    }
   }
 }
 
