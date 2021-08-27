@@ -33,8 +33,6 @@ Remap::Remap(Input& in_input,
   support.resize(num_points, Weight::ELLIPTIC);
   weights.resize(num_points);
   smoothing_lengths.resize(num_points);
-  gradients.resize(num_points);
-  stencils.resize(num_points);
 
   // approximate cell sizes in circumferential and radial directions.
   h_unscaled[0] = input.kernel.radius * input.mesh.span_angle / (input.mesh.num_hor - 1);
@@ -316,6 +314,11 @@ void Remap::estimate_gradients() {
   // step 0: update mesh points coordinates
   update_mesh(false);
 
+  Wonton::vector<Wonton::Vector<DIM>> gradients(mesh.num_points);
+  Wonton::vector<std::vector<Point<DIM>>> coordinates(mesh.num_points);
+  Wonton::vector<std::vector<Wonton::Matrix>> stencils(mesh.num_points);
+  Wonton::vector<std::vector<double>> values(mesh.num_points);
+
   // step 1: retrieve the neighbors of each mesh point
   using Filter = Portage::SearchPointsBins<DIM, Wonton::Swarm<DIM>, Wonton::Swarm<DIM>>;
 
@@ -335,7 +338,6 @@ void Remap::estimate_gradients() {
 
 
   // retrieve the coordinates of each point of the stencil
-  Wonton::vector<std::vector<Point<DIM>>> coordinates(mesh.num_points);
   Wonton::transform(neighbors.begin(), neighbors.end(), coordinates.begin(),
                     [&](auto const& indices) {
                       std::vector<Wonton::Point<DIM>> points;
@@ -351,8 +353,6 @@ void Remap::estimate_gradients() {
                     [&](auto const& points) {
                       return Wonton::build_gradient_stencil_matrices<DIM>(points, true);
                     });
-
-  Wonton::vector<std::vector<double>> values(mesh.num_points);
 
   for (int f = 0; f < num_fields; ++f) {
 
@@ -392,7 +392,7 @@ void Remap::estimate_gradients() {
 }
 
 /* -------------------------------------------------------------------------- */
-void Remap::interpolate(int step, double scaling, bool compute_gradients) {
+void Remap::interpolate(int step, double scaling) {
 
   bool use_loaded_only = input.wavelets.found and not input.wavelets.subcycle;
 
@@ -449,7 +449,7 @@ void Remap::interpolate(int step, double scaling, bool compute_gradients) {
     timer.stop("mesh_sync");
 
     // compute the gradients once the field is updated
-    if (compute_gradients) { estimate_gradients(); }
+    if (input.remap.gradient) { estimate_gradients(); }
   }
 }
 

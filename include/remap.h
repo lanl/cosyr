@@ -38,7 +38,7 @@ public:
    * @param scaling: field scaling factor.
    * @param compute_gradients: whether to compute gradients or not.
    */
-  void interpolate(int step, double scaling, bool compute_gradients = false);
+  void interpolate(int step, double scaling);
 
   /**
    * @brief Check whether to remap for current step or not.
@@ -177,22 +177,6 @@ private:
    *
    */
   Wonton::vector<std::vector<Wonton::Weights_t>> weights;
-
-  /**
-   * @brief Gradients of current field
-   *
-   */
-  Wonton::vector<Wonton::Vector<DIM>> gradients;
-
-  /**
-   * @brief Stencil matrices involved in gradient estimation.
-   *
-   * It stores the matrices (A^T.A)^-1 and A^T involved in the
-   * resolution of the least square equation (A^T.A).X = A^T.F
-   * These matrices are the same for each field so they are
-   * cached for reuse purposes.
-   */
-  Wonton::vector<std::vector<Wonton::Matrix>> stencils;
 
   /**
    * @brief Number of fields to remap.

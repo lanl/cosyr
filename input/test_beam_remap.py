@@ -41,6 +41,7 @@ remap_adaptive = False              # use adaptive smoothing length for remap
 remap_scaling[0] = 1.0              # base support/smoothing length scaling factor
 remap_scaling[1] = 1.0              # base support/smoothing length scaling factor
 remap_verbose = False               # print remap statistics
+remap_gradient = True               # whether to compute gradients of remapped fields
 
 # electron beam
 beam_charge = 0.01                 # nC

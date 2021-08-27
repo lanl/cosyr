@@ -131,7 +131,7 @@ int main(int argc, char* argv[]) {
         MPI_Barrier(input.mpi.comm);
         timer.stop("kernel");
 
-        remap.interpolate(i, std::abs(beam.q), true);
+        remap.interpolate(i, std::abs(beam.q));
       }
 
       io.dump_wavelets(i);
