@@ -296,29 +296,19 @@ void Remap::run(int particle, bool accumulate, bool rescale, double scaling) {
 #endif
 
   // copy back values to mesh
-#if DIM == 3
-  auto all_fields = { Cabana::slice<F1>(mesh.fields),
-                      Cabana::slice<F2>(mesh.fields),
-                      Cabana::slice<F3>(mesh.fields),
-                      Cabana::slice<F4>(mesh.fields) };
-#else
-  auto all_fields = { Cabana::slice<F1>(mesh.fields),
-                      Cabana::slice<F2>(mesh.fields),
-                      Cabana::slice<F3>(mesh.fields) };
-#endif
+  auto const range = HostRange(0, mesh.num_points);
 
   for (int i = 0; i < num_fields; i++) {
-    auto field = all_fields.begin()[i];
-    auto const& remapped_values = target.get_field(fields[i]);
-    auto const range = HostRange(0, remapped_values.size());
+    auto slice = mesh.get_slice(mesh.fields, i);
+    auto const& values = target.get_field(fields[i]);
 
     if (accumulate) {
-      Kokkos::parallel_for(range, [&](int j) { field(j) += remapped_values[j]; });
+      Kokkos::parallel_for(range, [&](int j) { slice(j) += values[j]; });
     } else {
-      Kokkos::parallel_for(range, [&](int j) { field(j) = remapped_values[j]; });
+      Kokkos::parallel_for(range, [&](int j) { slice(j) = values[j]; });
     }
     if (rescale) {
-      Kokkos::parallel_for(range, [&](int j) { field(j) *= scaling; });
+      Kokkos::parallel_for(range, [&](int j) { slice(j) *= scaling; });
     }
   }
 }
