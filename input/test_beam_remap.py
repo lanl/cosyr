@@ -8,7 +8,7 @@ from input.misc import *
 
 ####################### Preprocessing ##########################
 
-run_name = "test_beam_remap_gradients"
+run_name = "test_beam_remap_g1000"
 
 ## electron and trajectory
 gamma=1000
