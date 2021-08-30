@@ -36,6 +36,7 @@ public:
    *
    * @param step: current step.
    * @param scaling: field scaling factor.
+   * @param compute_gradients: whether to compute gradients or not.
    */
   void interpolate(int step, double scaling);
 
@@ -49,24 +50,25 @@ public:
 
 private:
   /**
-   * @brief Collect loaded wavelets for subcycling.
+   * @brief Update loaded wavelets for subcycling.
    *
    */
-  void collect_subcycle_wavelets();
+  void update_subcycle_wavelets(bool reset = true);
 
   /**
-   * @brief Collect all active wavelets.
+   * @brief Update all active wavelets.
    *
    * @param istart: starting index or offset.
    * @param num_active: number of active wavelets.
    */
-  void collect_active_wavelets(int istart, int num_active);
+  void update_active_wavelets(int istart, int num_active);
 
   /**
-   * @brief Collect mesh points.
+   * @brief Collect mesh points and reset state if requested.
    *
+   * @param reset: whether to reset the mesh state or not.
    */
-  void collect_grid();
+  void update_mesh(bool reset = true);
 
   /**
    * @brief Compute smoothing lengths for each point.
@@ -102,6 +104,17 @@ private:
   void run(int particle, bool accumulate, bool rescale, double scaling);
 
   /**
+   * @brief Estimate gradient of mesh fields using a least-squares fit approximation.
+   *
+   * For a given mesh point and a given field, it solves the normal
+   * equation (A^T.A).X = (A^T.F) where A is the matrix of distances between
+   * the current point and each of its neighbor, and F is the vector of
+   * differences between field values at the current point and that of
+   * each of his neighbor.
+   */
+  void estimate_gradients();
+
+  /**
    * @brief Print remap info.
    *
    * @param count_active: number of active wavelets.
@@ -122,6 +135,12 @@ private:
    *
    */
   std::vector<double> h = {1.0, 1.0};
+
+  /**
+   * @brief Unscaled axis lengths for support of weight functions.
+   *
+   */
+  std::vector<double> h_unscaled = {1.0, 1.0};
 
   /**
    * @brief Smoothing lengths.

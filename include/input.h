@@ -61,7 +61,8 @@ public:
     double scaling[2] = {1.0, 1.0};  /** support scaling factor */
     bool adaptive = false;           /** use adaptive smoothing lengths */ 
     bool scatter = false;            /** use scatter weights form */
-    bool verbose = false;            /** verbose message about remapping */  
+    bool verbose = false;            /** verbose message about remapping */
+    bool gradient = false;          /** whether to compute gradients of remapped fields */
   } remap;
 
   struct {

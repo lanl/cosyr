@@ -196,6 +196,8 @@ void IO::dump_beam(int step) const {
 /* -------------------------------------------------------------------------- */
 void IO::dump_mesh(int step) const {
 
+  static_assert(DIM == 2, "invalid dimension");
+
   bool write_mesh = input.mesh.output
                     and (step >= input.mesh.dump_start)
                     and ((step - input.mesh.dump_start) % input.mesh.dump_interval == 0);
@@ -210,6 +212,7 @@ void IO::dump_mesh(int step) const {
     std::ofstream file;
     std::string position_file(input.kernel.run_name + "/mesh/" + std::to_string(step) + "/comoving_mesh_pos.csv");
     std::string field_file(input.kernel.run_name + "/mesh/" + std::to_string(step) + "/comoving_mesh_field.csv");
+    std::string gradient_file(input.kernel.run_name + "/mesh/" + std::to_string(step) + "/comoving_mesh_gradients.csv");
 
     file.open(position_file);
 
@@ -243,6 +246,30 @@ void IO::dump_mesh(int step) const {
       }
     } else
       throw std::runtime_error("failed to open '" + field_file + "'");
+
+    file.close();
+    file.open(gradient_file);
+
+    if (file.good()) {
+
+      auto const dx_f1 = Cabana::slice<X>(mesh.gradients[0]);
+      auto const dx_f2 = Cabana::slice<X>(mesh.gradients[1]);
+      auto const dx_f3 = Cabana::slice<X>(mesh.gradients[2]);
+      auto const dy_f1 = Cabana::slice<Y>(mesh.gradients[0]);
+      auto const dy_f2 = Cabana::slice<Y>(mesh.gradients[1]);
+      auto const dy_f3 = Cabana::slice<Y>(mesh.gradients[2]);
+
+      file << "# dx_f1, dy_f1, dx_f2, dy_f2, dy_f3, dx_f3" << "\n";
+      file << std::setprecision(12);
+
+      for (int i = 0; i < mesh.num_points; i++) {
+        file << dx_f1(i) << ", " << dy_f1(i) << ", ";
+        file << dx_f2(i) << ", " << dy_f2(i) << ", ";
+        file << dx_f3(i) << ", " << dy_f3(i) << "\n";
+      }
+
+    } else
+      throw std::runtime_error("failed to open '" + gradient_file + "'");
 
     file.close();
 

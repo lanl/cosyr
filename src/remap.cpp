@@ -1,6 +1,7 @@
 #include "remap.h"
 
 #include <memory>
+#include <lsfits.h>
 
 namespace cosyr {
 
@@ -25,6 +26,7 @@ Remap::Remap(Input& in_input,
   num_fields = std::min(input.wavelets.num_fields, DIM + 1);
 
   int const num_points = mesh.num_points;
+  grid.resize(mesh.num_points);
   extents.resize(num_points);
   neighbors.resize(num_points);
   kernels.resize(num_points, Weight::B4);
@@ -33,17 +35,17 @@ Remap::Remap(Input& in_input,
   smoothing_lengths.resize(num_points);
 
   // approximate cell sizes in circumferential and radial directions.
-  double hc = input.kernel.radius * input.mesh.span_angle / (input.mesh.num_hor - 1);
-  double hr = input.mesh.width / (input.mesh.num_ver - 1);
+  h_unscaled[0] = input.kernel.radius * input.mesh.span_angle / (input.mesh.num_hor - 1);
+  h_unscaled[1] = input.mesh.width / (input.mesh.num_ver - 1);
 
   if (input.mpi.rank == 0) {
     std::cout << "num_fields: " << num_fields << std::endl;
-    std::cout << "remap: hr: "<< hr << ", hc: " << hc << std::endl;
+    std::cout << "remap: hr: "<< h_unscaled[1] << ", hc: " << h_unscaled[0] << std::endl;
   }
 
   // set smoothing lengths
-  h[0] = input.remap.scaling[0] * hc;
-  h[1] = input.remap.scaling[1] * hr;
+  h[0] = input.remap.scaling[0] * h_unscaled[0];
+  h[1] = input.remap.scaling[1] * h_unscaled[1];
 
   Kokkos::parallel_for(HostRange(0, num_points),
                        [&](int i) { smoothing_lengths[i] = Matrix(1, h); });
@@ -53,7 +55,7 @@ Remap::Remap(Input& in_input,
                        [&](int i) { extents[i] = {h[0], h[1] }; });
 
   gamma = input.kernel.motion_params[0];
-  dtdx = input.kernel.dt / hc;
+  dtdx = input.kernel.dt / h_unscaled[0];
 
   for (int i = 1; i <= num_fields; ++i) {
     fields.emplace_back("fld" + std::to_string(i));
@@ -61,36 +63,35 @@ Remap::Remap(Input& in_input,
 }
 
 /* -------------------------------------------------------------------------- */
-void Remap::collect_subcycle_wavelets() {
+void Remap::update_subcycle_wavelets(bool reset) {
 
-  wave.resize(input.wavelets.count);
-  Wonton::vector<double> field(input.wavelets.count);
+  int const num_wavelets = input.wavelets.count;
+  wave.resize(num_wavelets);
 
-  for (int j = 0; j < input.wavelets.count; j++) {
+  for (int j = 0; j < num_wavelets; j++) {
     #if DIM == 3
-      Wonton::Point<DIM> p(input.wavelets.x[j],
-                           input.wavelets.y[j],
-                           input.wavelets.z[j]);
+      wave.assign(j, { input.wavelets.x[j], input.wavelets.y[j], input.wavelets.z[j] });
     #else
-      Wonton::Point<DIM> p(input.wavelets.x[j], input.wavelets.y[j]);
+      wave.assign(j, { input.wavelets.x[j], input.wavelets.y[j] });
     #endif
-    wave.assign(j, p);
   }
 
-  // initialize a state manager for the field swarm and populate it
-  source.init(wave);
+  if (reset) {
+    // initialize a state manager for the field swarm and populate it
+    source.init(wave);
+    Wonton::vector<double> field(num_wavelets);
+    auto const range = HostRange(0, num_wavelets);
 
-  for (int i = 0; i < num_fields; ++i) {
-    int const k = i * input.wavelets.count;
-    for (int j = 0; j < input.wavelets.count; j++) {
-      field[j] = input.wavelets.field[j + k];
+    for (int i = 0; i < num_fields; ++i) {
+      int const k = i * num_wavelets;
+      Kokkos::parallel_for(range, [&](int j) { field[j] = input.wavelets.field[j + k]; });
+      source.add_field(fields[i], field);
     }
-    source.add_field(fields[i], field);
   }
 }
 
 /* -------------------------------------------------------------------------- */
-void Remap::collect_active_wavelets(int index_particle, int num_active) {
+void Remap::update_active_wavelets(int istart, int num_active) {
 
   bool const subcycle = input.wavelets.found and input.wavelets.subcycle;
   int const num_loaded = (subcycle ? input.wavelets.count : 0);
@@ -101,35 +102,33 @@ void Remap::collect_active_wavelets(int index_particle, int num_active) {
   // step 2: copy loaded wavelets
   if (subcycle) {
     for (int j = 0; j < num_loaded; j++) {
-      int const k = j + (index_particle * num_loaded);
+      int const k = j + (istart * num_loaded);
       #if DIM == 3
-        Wonton::Point<DIM> p(wavelets.loaded.host.coords(k, WT_POS_X),
-                             wavelets.loaded.host.coords(k, WT_POS_Y),
-                             wavelets.loaded.host.coords(k, WT_POS_Z));
+        wave.assign(j, { wavelets.loaded.host.coords(k, WT_POS_X),
+                         wavelets.loaded.host.coords(k, WT_POS_Y),
+                         wavelets.loaded.host.coords(k, WT_POS_Z) });
       #else
-        Wonton::Point<DIM> p(wavelets.loaded.host.coords(k, WT_POS_X),
-                             wavelets.loaded.host.coords(k, WT_POS_Y));
+        wave.assign(j, { wavelets.loaded.host.coords(k, WT_POS_X),
+                         wavelets.loaded.host.coords(k, WT_POS_Y) });
       #endif
-      wave.assign(j, p);
     }
   }
 
   // step 1: copy active emitted wavelets
   int const num_emitted = num_active - num_loaded;
   int const total_emitted = input.kernel.num_wavefronts * input.kernel.num_dirs;
-  int const index_start = index_particle * total_emitted;
+  int const index_start = istart * total_emitted;
 
   for (int j = 0; j < num_emitted; j++) {
     int const k = j + index_start;
     #if DIM == 3
-      Wonton::Point<DIM> p(wavelets.emitted.host.coords(k, WT_POS_X),
-                           wavelets.emitted.host.coords(k, WT_POS_Y),
-                           wavelets.emitted.host.coords(k, WT_POS_Z));
+    wave.assign(j + num_loaded, { wavelets.emitted.host.coords(k, WT_POS_X),
+                                  wavelets.emitted.host.coords(k, WT_POS_Y),
+                                  wavelets.emitted.host.coords(k, WT_POS_Z) });
     #else
-      Wonton::Point<DIM> p(wavelets.emitted.host.coords(k, WT_POS_X),
-                           wavelets.emitted.host.coords(k, WT_POS_Y));
+      wave.assign(j + num_loaded, { wavelets.emitted.host.coords(k, WT_POS_X),
+                                    wavelets.emitted.host.coords(k, WT_POS_Y) });
     #endif
-    wave.assign(j + num_loaded, p);
   }
 
   source.init(wave);
@@ -138,7 +137,7 @@ void Remap::collect_active_wavelets(int index_particle, int num_active) {
     // step 4: copy all loaded fields
     if (subcycle) {
       for (int j = 0; j < num_loaded; ++j) {
-        int const k = j + (index_particle * num_loaded);
+        int const k = j + (istart * num_loaded);
         field[j] = wavelets.loaded.host.fields[i](k);
       }
     }
@@ -154,11 +153,9 @@ void Remap::collect_active_wavelets(int index_particle, int num_active) {
 }
 
 /* -------------------------------------------------------------------------- */
-void Remap::collect_grid() {
+void Remap::update_mesh(bool reset) {
 
   // Create the particle swarm corresponding to the mesh vertices
-  grid.resize(mesh.num_points);
-
   auto x = Cabana::slice<X>(mesh.points);
   auto y = Cabana::slice<Y>(mesh.points);
   #if DIM==3
@@ -170,18 +167,18 @@ void Remap::collect_grid() {
     for (int j = 0; j < mesh.resolution[1]; j++) {
       int const k = i * mesh.resolution[1] + j;
       #if DIM==3
-        Wonton::Point<DIM> p(x(k), y(k), z(k));
+        grid.assign(n++, { x(k), y(k), z(k) });
       #else
-        Wonton::Point<DIM> p(x(k), y(k));
+        grid.assign(n++, { x(k), y(k) });
       #endif
-      grid.assign(n++, p);
     } 
   }
 
-  // initialize the swarm and state whose values will be populated after remap.
-  target.init(grid);
-  for (int i = 0; i < num_fields; i++) {
-    target.add_field<double>(fields[i], 0.0);
+  if (reset) {
+    target.init(grid);
+    for (int i = 0; i < num_fields; i++) {
+      target.add_field<double>(fields[i], 0.0);
+    }
   }
 }
 
@@ -294,31 +291,110 @@ void Remap::run(int particle, bool accumulate, bool rescale, double scaling) {
 #endif
 
   // copy back values to mesh
-#if DIM == 3
-  auto all_fields = { Cabana::slice<F1>(mesh.fields),
-                      Cabana::slice<F2>(mesh.fields),
-                      Cabana::slice<F3>(mesh.fields),
-                      Cabana::slice<F4>(mesh.fields) };
-#else
-  auto all_fields = { Cabana::slice<F1>(mesh.fields),
-                      Cabana::slice<F2>(mesh.fields),
-                      Cabana::slice<F3>(mesh.fields) };
-#endif
+  auto const range = HostRange(0, mesh.num_points);
 
   for (int i = 0; i < num_fields; i++) {
-    auto field = all_fields.begin()[i];
-    auto const& remapped_values = target.get_field(fields[i]);
-    auto const range = HostRange(0, remapped_values.size());
+    auto slice = mesh.get_field_slice(mesh.fields, i);
+    auto const& values = target.get_field(fields[i]);
 
     if (accumulate) {
-      Kokkos::parallel_for(range, [&](int j) { field(j) += remapped_values[j]; });
+      Kokkos::parallel_for(range, [&](int j) { slice(j) += values[j]; });
     } else {
-      Kokkos::parallel_for(range, [&](int j) { field(j) = remapped_values[j]; });
+      Kokkos::parallel_for(range, [&](int j) { slice(j) = values[j]; });
     }
     if (rescale) {
-      Kokkos::parallel_for(range, [&](int j) { field(j) *= scaling; });
+      Kokkos::parallel_for(range, [&](int j) { slice(j) *= scaling; });
     }
   }
+}
+
+/* -------------------------------------------------------------------------- */
+void Remap::estimate_gradients() {
+
+  if (input.mpi.rank != 0) { return; }
+
+  std::cout << "estimate gradients ... " << std::flush;
+
+  // step 0: update mesh points coordinates
+  update_mesh(false);
+
+  Wonton::vector<Wonton::Vector<DIM>> gradients(mesh.num_points);
+  Wonton::vector<std::vector<Point<DIM>>> coordinates(mesh.num_points);
+  Wonton::vector<std::vector<Wonton::Matrix>> stencils(mesh.num_points);
+  Wonton::vector<std::vector<double>> values(mesh.num_points);
+
+  // step 1: retrieve the neighbors of each mesh point
+  using Filter = Portage::SearchPointsBins<DIM, Wonton::Swarm<DIM>, Wonton::Swarm<DIM>>;
+
+  Filter search(grid, grid, extents, extents, WeightCenter::Gather, 3);
+  Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                    grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                    neighbors.begin(), search);
+
+  // enrich each list of neighbors by prepending it with the current point index
+  Wonton::for_each(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                   grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                   [&](int i) {
+                     std::vector<int> indices = neighbors[i];
+                     indices.emplace(indices.begin(), i);
+                     neighbors[i] = indices;
+                   });
+
+
+  // retrieve the coordinates of each point of the stencil
+  Wonton::transform(neighbors.begin(), neighbors.end(), coordinates.begin(),
+                    [&](auto const& indices) {
+                      std::vector<Wonton::Point<DIM>> points;
+                      for (int j : indices) {
+                        points.emplace_back(grid.get_particle_coordinates(j));
+                      }
+                      return points;
+                    });
+
+
+  // step 2: build and cache stencil matrices
+  Wonton::transform(coordinates.begin(), coordinates.end(), stencils.begin(),
+                    [&](auto const& points) {
+                      return Wonton::build_gradient_stencil_matrices<DIM>(points, true);
+                    });
+
+  for (int f = 0; f < num_fields; ++f) {
+
+    auto const field = mesh.get_field_slice(mesh.fields, f);
+
+    // retrieve field values
+    Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                      grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                      values.begin(),
+                      [&](int i) {
+                        std::vector<int> const& indices = neighbors[i];
+                        std::vector<double> data;
+                        data.reserve(indices.size());
+                        for (int j : indices) { data.emplace_back(field(j)); }
+                        return data;
+                      });
+
+    // build right-hand sides and solve equations
+    Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                      grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                      gradients.begin(),
+                      [&](int i) {
+                        std::vector<Wonton::Matrix> const& stencil = stencils[i];
+                        return Wonton::ls_gradient<DIM>(stencil[0], stencil[1], values[i]);
+                      });
+
+    // store back to mesh
+    auto dx = Cabana::slice<X>(mesh.gradients[f]);
+    auto dy = Cabana::slice<Y>(mesh.gradients[f]);
+    Kokkos::parallel_for(HostRange(0, mesh.num_points),
+                         [&](int j) {
+                           Wonton::Vector<DIM> const nabla = gradients[j];
+                           dx(j) = nabla[0];
+                           dy(j) = nabla[1];
+                         });
+  }
+
+  std::cout << "done" << std::endl;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -336,8 +412,8 @@ void Remap::interpolate(int step, double scaling) {
     if (use_loaded_only) {
       // interpolate the prescribed field at prescribed wavelets
       print_info(input.wavelets.count);
-      collect_subcycle_wavelets();
-      collect_grid();
+      update_subcycle_wavelets();
+      update_mesh();
       run(0, accumulate, rescale, 1.0);
       print_progress();
 
@@ -361,8 +437,8 @@ void Remap::interpolate(int step, double scaling) {
 
         for (int j = first_particle; j <= last_particle; j++) {
           print_info(count_active, ratio_loaded);
-          collect_active_wavelets(j, num_active[j]);
-          collect_grid();
+          update_active_wavelets(j, num_active[j]);
+          update_mesh();
           rescale = (j == last_particle);
           run(j, accumulate, rescale, scaling);
           accumulate = true;
@@ -377,6 +453,14 @@ void Remap::interpolate(int step, double scaling) {
     timer.start("mesh_sync");
     mesh.sync();
     timer.stop("mesh_sync");
+
+    // compute the gradients once the field is updated
+    if (input.remap.gradient and step > 0) {
+      timer.start("gradients");
+      estimate_gradients();
+      MPI_Barrier(input.mpi.comm);
+      timer.stop("gradients");
+    }
   }
 }
 

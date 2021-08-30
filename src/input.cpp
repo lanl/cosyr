@@ -81,6 +81,7 @@ Input::Input(int argc, char **argv, Timer& in_timer) : timer(in_timer) {
                     "remap_adaptive"_a = remap.adaptive,                    
                     "remap_scaling"_a = remap_scale,
                     "remap_verbose"_a = remap.verbose,
+                    "remap_gradient"_a = remap.gradient,
                     //beam
                     "beam"_a = py_beam,
                     "beam_charge"_a = beam.charge,
@@ -150,7 +151,8 @@ Input::Input(int argc, char **argv, Timer& in_timer) : timer(in_timer) {
   remap.scatter          = locals["remap_scatter"].cast<bool>();
   remap.adaptive         = locals["remap_adaptive"].cast<bool>();  
   remap_scale            = py::cast<py::array>(locals["remap_scaling"]);
-  remap.verbose          = locals["remap_verbose"].cast<bool>();  
+  remap.verbose          = locals["remap_verbose"].cast<bool>();
+  remap.gradient         = locals["remap_gradient"].cast<bool>();
   // wavelets
   wavelets.output        = locals["wavelet_output"].cast<bool>();
   wavelets.dump_start    = locals["wavelet_output_start"].cast<int>();

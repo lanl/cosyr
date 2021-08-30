@@ -169,7 +169,21 @@ class CosyrAnalyze(object):
         self.cmesh_fld1 /= self.gamma**4.0
         self.cmesh_fld2 /= self.gamma**4.0
         self.cmesh_fld3 /= self.gamma**4.0
-        
+
+        d = pd.read_csv(self.data_dir+'/mesh/{}/comoving_mesh_gradients.csv'.format(self.step), delimiter=",", dtype="float64").values
+        self.cmesh_fld1_dx = d[:,0]
+        self.cmesh_fld1_dy = d[:,1]
+        self.cmesh_fld2_dx = d[:,2]
+        self.cmesh_fld2_dy = d[:,3]
+        self.cmesh_fld3_dx = d[:,4]
+        self.cmesh_fld3_dy = d[:,5]
+        self.cmesh_fld1_dx /= self.gamma**4.0
+        self.cmesh_fld1_dy /= self.gamma**4.0
+        self.cmesh_fld2_dx /= self.gamma**4.0
+        self.cmesh_fld2_dy /= self.gamma**4.0
+        self.cmesh_fld3_dx /= self.gamma**4.0
+        self.cmesh_fld3_dy /= self.gamma**4.0
+
 
     def load_cmesh_polar(self):
 

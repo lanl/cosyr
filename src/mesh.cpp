@@ -27,25 +27,23 @@ Mesh::Mesh(const Input& input) : input(input) {
 
   points.resize(num_points);
   fields.resize(num_points);
+  for (auto& gradient : gradients) { gradient.resize(num_points); }
 
-// clear mesh fields 
-#if DIM==3
-  auto field_slices = { Cabana::slice<F1>(fields),
-                        Cabana::slice<F2>(fields),
-                        Cabana::slice<F3>(fields),
-                        Cabana::slice<F4>(fields) };
-#else
-  auto field_slices = { Cabana::slice<F1>(fields),
-                        Cabana::slice<F2>(fields),
-                        Cabana::slice<F3>(fields) };
-#endif
+// clear mesh fields
+  auto const range = HostRange(0, num_points);
 
-  for (int i = 0; i < num_fields; i++) {
-    auto current = field_slices.begin()[i];
-    for (int j = 0; j < current.size(); ++j) {
-      current(j) = 0.0;
-    }
-  }  
+  for (int f = 0; f < num_fields; ++f) {
+    auto slice = get_field_slice(fields, f);
+    Kokkos::parallel_for(range, [&](int j){ slice(j) = 0.0; });
+  }
+
+  // clear gradients
+  for (auto& gradient : gradients) {
+    auto dx = Cabana::slice<X>(gradient);
+    auto dy = Cabana::slice<Y>(gradient);
+    Kokkos::parallel_for(range, [&](int j){ dx(j) = 0.0; });
+    Kokkos::parallel_for(range, [&](int j){ dy(j) = 0.0; });
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -179,6 +177,10 @@ void Mesh::move(const double* new_position, const double* new_velocity) {
 void Mesh::sync() {
 
   if (input.mpi.num_ranks > 1) {
+    if (input.mpi.rank == 0) {
+      std::cout << "synchronize mesh ... " << std::flush;
+    }
+
     // TODO: use either custom MPI data type or Cabana MPI functionality
     // example: https://github.com/ECP-copa/Cabana/blob/master/example/tutorial
     // /04_aosoa_advanced_unmanaged/advanced_aosoa_unmanaged.cpp
@@ -206,6 +208,9 @@ void Mesh::sync() {
         field(j) = buffer[j + offset];
       }
     }
+
+    MPI_Barrier(input.mpi.comm);
+    if (input.mpi.rank == 0) { std::cout << "done." << std::endl; }
   }
 }
 
