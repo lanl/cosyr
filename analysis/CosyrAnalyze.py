@@ -149,20 +149,24 @@ class CosyrAnalyze(object):
     def load_cmesh(self):
         from scipy.spatial.transform import Rotation as R
         import pandas as pd
+        import os
 
         # positions
         #self.cmesh_x, self.cmesh_y = np.loadtxt(
         #    self.data_dir+'/comoving_mesh_pos.csv', delimiter=',', unpack=True)
-        d = pd.read_csv(self.data_dir+'/mesh/{}/comoving_mesh_pos.csv'.format(self.step), delimiter=",", dtype="float64").values
+        pos_file = self.data_dir+'/mesh/{}/comoving_mesh_pos.csv'.format(self.step)
+        d = pd.read_csv(pos_file, delimiter=",", dtype="float64").values
         self.cmesh_x = d[:,0]
         self.cmesh_y = d[:,1]
         # axis range
         self.xlim_cmesh = [self.cmesh_x.min(), self.cmesh_x.max()] 
         self.ylim_cmesh = [self.cmesh_y.min(), self.cmesh_y.max()]
+        
         # fields
         #self.cmesh_vfld, self.cmesh_afld, self.cmesh_tfld = np.loadtxt(
         #    self.data_dir+'/comoving_mesh_field.csv', delimiter=',', unpack=True)
-        d = pd.read_csv(self.data_dir+'/mesh/{}/comoving_mesh_field.csv'.format(self.step), delimiter=",", dtype="float64").values
+        fld_file = self.data_dir+'/mesh/{}/comoving_mesh_field.csv'.format(self.step)
+        d = pd.read_csv(fld_file, delimiter=",", dtype="float64").values
         self.cmesh_fld1 = d[:,0]
         self.cmesh_fld2 = d[:,1]
         self.cmesh_fld3 = d[:,2]        
@@ -170,19 +174,22 @@ class CosyrAnalyze(object):
         self.cmesh_fld2 /= self.gamma**4.0
         self.cmesh_fld3 /= self.gamma**4.0
 
-        d = pd.read_csv(self.data_dir+'/mesh/{}/comoving_mesh_gradients.csv'.format(self.step), delimiter=",", dtype="float64").values
-        self.cmesh_fld1_dx = d[:,0]
-        self.cmesh_fld1_dy = d[:,1]
-        self.cmesh_fld2_dx = d[:,2]
-        self.cmesh_fld2_dy = d[:,3]
-        self.cmesh_fld3_dx = d[:,4]
-        self.cmesh_fld3_dy = d[:,5]
-        self.cmesh_fld1_dx /= self.gamma**4.0
-        self.cmesh_fld1_dy /= self.gamma**4.0
-        self.cmesh_fld2_dx /= self.gamma**4.0
-        self.cmesh_fld2_dy /= self.gamma**4.0
-        self.cmesh_fld3_dx /= self.gamma**4.0
-        self.cmesh_fld3_dy /= self.gamma**4.0
+        # gradient 
+        gradient_file = self.data_dir+'/mesh/{}/comoving_mesh_gradients.csv'.format(self.step)
+        if (os.path.isfile(gradient_file)) :
+            d = pd.read_csv(gradient_file, delimiter=",", dtype="float64").values
+            self.cmesh_fld1_dx = d[:,0]
+            self.cmesh_fld1_dy = d[:,1]
+            self.cmesh_fld2_dx = d[:,2]
+            self.cmesh_fld2_dy = d[:,3]
+            self.cmesh_fld3_dx = d[:,4]
+            self.cmesh_fld3_dy = d[:,5]
+            self.cmesh_fld1_dx /= self.gamma**4.0
+            self.cmesh_fld1_dy /= self.gamma**4.0
+            self.cmesh_fld2_dx /= self.gamma**4.0
+            self.cmesh_fld2_dy /= self.gamma**4.0
+            self.cmesh_fld3_dx /= self.gamma**4.0
+            self.cmesh_fld3_dy /= self.gamma**4.0
 
 
     def load_cmesh_polar(self):
