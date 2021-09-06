@@ -118,7 +118,8 @@ def load_file(path, ext="npy"):
 
 ## load wavelets
 def load_wavelets(path2wavelets, X_coord_file="scaled_xprime_sub.csv", Y_coord_file="scaled_yprime_sub.csv", 
-                  fld_file="EsRad_sub.csv", unscale_coord=False, _gamma=10, broadcast=True, filter=False, filter_exp="np.where(wx<0.0)") :
+                  fld_file="EsRad_sub.csv", psi_file="", unscale_coord=False, _gamma=10, broadcast=True,
+                  filter=False, filter_exp="np.where(wx<0.0)") :
     import numpy as np
     import os.path
 
@@ -130,6 +131,7 @@ def load_wavelets(path2wavelets, X_coord_file="scaled_xprime_sub.csv", Y_coord_f
     wx = None
     wy = None
     field = None
+    psi = None
 
     if (broadcast==False or mpi_rank==0) :
        extension = os.path.splitext(X_coord_file)[1]
@@ -138,6 +140,9 @@ def load_wavelets(path2wavelets, X_coord_file="scaled_xprime_sub.csv", Y_coord_f
        wy = load_file(path2wavelets+'/'+Y_coord_file, extension) 
        extension = os.path.splitext(fld_file)[1]
        field = load_file(path2wavelets+'/'+fld_file, extension) 
+       if (psi_file != "") : 
+          extension = os.path.splitext(psi_file)[1]
+          psi = load_file(path2wavelets+'/'+psi_file, extension) 
        ## unscale if necessary
        if unscale_coord :
           wx /= _gamma**3.0
@@ -147,13 +152,16 @@ def load_wavelets(path2wavelets, X_coord_file="scaled_xprime_sub.csv", Y_coord_f
        wx = comm.bcast(wx, root=0)
        wy = comm.bcast(wy, root=0)
        field = comm.bcast(field, root=0)
+       if (psi_file != "") : 
+          psi = comm.bcast(psi, root=0)
     
     if (filter) :
         # select wavelets based on filter
         filtered_x = eval(filter_exp)  
         wx_filtered = wx[filtered_x]
         wy_filtered = wy[filtered_x]
-        fld_filtered = field[:,filtered_x]
+        fld_filtered = np.take(field, filtered_x[0], 1)
+        #fld_filtered = field[:,filtered_x]
     else :
         wx_filtered = wx
         wy_filtered = wy
