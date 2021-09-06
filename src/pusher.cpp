@@ -94,7 +94,7 @@ bool Pusher::skip_emission(int step) {
     }
 #endif
 
-    if (step < emission_start_step or (emission_step % emission_interval) != 0) {
+    if ((emission_step < 0) or (emission_step % emission_interval) != 0) {
       return true;
     } else {
       update_emission_info();
