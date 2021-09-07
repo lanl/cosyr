@@ -226,6 +226,7 @@ void calculate_fields(Kokkos::View<double*> emit_info,
                       int index_emit_wave,
                       double dt_emt,
                       double q,
+                      double gamma_ref,
                       double min_emit_angle,
                       int num_dirs,
                       int range_count,
@@ -240,14 +241,15 @@ void calculate_fields(Kokkos::View<double*> emit_info,
   double const r2          = std::pow(dt_emt, 2.0);
   double const betaprime_x = emit_info(index_emit_wave + EMT_VEL_X);
   double const betaprime_y = emit_info(index_emit_wave + EMT_VEL_Y);
-  double const gamma_e     = emit_info(index_emit_wave + EMT_GAMMA);
-  double const gamma2      = std::pow(gamma_e, 2.0); // TODO: get gamma from Particle class
+  double const gamma_prime = emit_info(index_emit_wave + EMT_GAMMA);
+  double const gamma2      = std::pow(gamma_ref, 2.0); 
+  double const g2_prime    = std::pow(gamma_prime, 2.0); 
   double beta = sqrt(1.0 - 1.0/gamma2);
-  double const syn_cone    = min_emit_angle / gamma_e;
+  double const syn_cone    = min_emit_angle / gamma_prime;
   double syn_cone_ulim = std::atan2(betaprime_y, betaprime_x);
   double const syn_cone_llim = syn_cone_ulim - syn_cone;
   syn_cone_ulim += syn_cone;
-  double const qgr2 = q / gamma2 / r2; // this is q/(gamma^2*r^2) in velocity field
+  double const qgr2 = q / g2_prime / r2; // this is q/(gamma^2*r^2) in velocity field
   double const qr   = q / dt_emt;        // this is q/r in acceleration field
 
   int ndirs_local = num_dirs;
@@ -289,7 +291,7 @@ void calculate_fields(Kokkos::View<double*> emit_info,
 
     #ifdef PROJECT_WITH_OWN_ORIGIN
       // calculate wavelet offset to particle's own origin
-      wpy -= emit_info(index_wavefront + EMT_POS_Y) - mesh_radius;
+      wpy -= emit_info(index_emit_wave + EMT_POS_Y) - mesh_radius;
     #endif
     double const dis = sqrt(wpx * wpx + wpy * wpy);
 
@@ -338,7 +340,6 @@ void calculate_fields(Kokkos::View<double*> emit_info,
       double Erad_t =  acc_fld_x * wpx + acc_fld_y * wpy; // E^{rad}_{t}
 
       // beta is along direction of the vector (cos_mc_angle, -sin_mc_angle)
-      // FIXME: need to pass beta value for proper betaprime_dot_beta 
       double betaprime_dot_beta = beta*(cos_mc_angle * betaprime_x - sin_mc_angle * betaprime_y);
 
       #ifdef MIX_KERNEL

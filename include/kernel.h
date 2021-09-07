@@ -86,6 +86,7 @@ int intersect_wavefronts_mesh(Kokkos::View<double*> emit_info,
  * @param index_emit_wave: index of wavefront in emit_info.
  * @param dt_emt: time since emission.
  * @param q: charge per particle.
+ * @param gamma_ref: gamma of reference particle.
  * @param min_emit_angle: minimum emission angle.
  * @param num_dirs: number of field directions.
  * @param range_count: angle range count.
@@ -107,6 +108,7 @@ void calculate_fields(Kokkos::View<double*> emit_info,
                       int index_emit_wave,
                       double dt_emt,
                       double q,
+                      double gamma_ref,
                       double min_emit_angle,
                       int num_dirs,
                       int range_count,

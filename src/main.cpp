@@ -40,12 +40,14 @@ int main(int argc, char* argv[]) {
     double t = 0.;
     double half_dt = input.kernel.dt * 0.5;
     double const q = std::copysign(1.0, beam.q);
+    double gamma_ref;
 
     for (int i = 0; i < input.kernel.num_step; i++) {
 
       input.print_step(i, t);
       t = t + half_dt;
       pusher.move(i, t);
+      gamma_ref = beam.host_emit_current[EMT_GAMMA];
       io.dump_beam(i);
 
       if (pusher.skip_emission(i)) {
@@ -114,7 +116,7 @@ int main(int argc, char* argv[]) {
                                             index_particle,
                                             index_wavelet,
                                             index_emit_wave,
-                                            dt_emit, q,
+                                            dt_emit, q, gamma_ref,
                                             input.kernel.min_emit_angle,
                                             input.kernel.num_dirs,
                                             range_count,
