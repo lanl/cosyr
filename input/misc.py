@@ -58,6 +58,26 @@ def gen_test_wavelets(scaled_alpha, scaled_chi, n_alpha, n_chi, _gamma=10, unsca
 
         alpha_axis *= _gamma**3.0
 
+    if (distribution=="gradient_1d") :
+        # -- start modif for distrib adptive to kernel gradient--
+        alpha_max = (scaled_alpha*0.5)/_gamma**3.0
+        number_of_wavelets_pos = int(n_alpha/2.0)  # for positive alpha axis
+        number_of_wavelets_neg = n_alpha - number_of_wavelets_pos  # for negative alpha axis
+
+        sep_max= (alpha_max*14.0/9.0/3**(1.0/3.0))**(3.0/7.0)
+        #psi_max_negative_axis = alpha_max/2.0
+
+        print("gradient_1d dist:", alpha_max, sep_max)
+
+        sep_for_pos_axis = np.linspace(0.0, sep_max, number_of_wavelets_pos)
+        #sep_for_neg_axis = np.linspace(psi_max_negative_axis, 0.0, number_of_wavelets_neg, endpoint=False)
+
+        alpha_axis = np.zeros(n_alpha)
+        alpha_axis[:number_of_wavelets_neg] = np.linspace(-alpha_max, 0.0, number_of_wavelets_neg, endpoint=False) 
+        alpha_axis[number_of_wavelets_neg:] = 9.0/14.0*(3.0*sep_for_pos_axis**7.0)**(1.0/3.0)
+
+        alpha_axis *= _gamma**3.0        
+        
         #np.set_printoptions(suppress=True)
         #print(shifted_alpha_axis)
         # -- end modif
