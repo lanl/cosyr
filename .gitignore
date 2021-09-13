@@ -16,6 +16,7 @@ analysis/.ipynb_checkpoints
 __init__.py
 input/*/*.pyc
 */__pycache__
+input/.ipynb_checkpoints
 
 # exclude test files
 interpolation_test
