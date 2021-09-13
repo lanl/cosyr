@@ -191,6 +191,12 @@ class CosyrAnalyze(object):
             self.cmesh_fld3_dx /= self.gamma**4.0
             self.cmesh_fld3_dy /= self.gamma**4.0
 
+        # wavelet distrib
+        stencil_file = self.data_dir+'/mesh/{}/comoving_mesh_stencil.csv'.format(self.step)
+        if (os.path.isfile(stencil_file)) :
+            d = pd.read_csv(stencil_file, delimiter=",", dtype="int").values
+            self.cmesh_wavelet_distrib = d[:,0]
+
 
     def load_cmesh_polar(self):
 
