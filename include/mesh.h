@@ -104,6 +104,12 @@ public:
   Cabana::AoSoA<Coords, HostSpace> gradients[num_fields];
 
   /**
+   * @brief Number of wavelets for each point (for reference particle).
+   *
+   */
+  Wonton::vector<int> count_wavelets;
+
+  /**
    * @brief Create a new moving mesh.
    *
    * @param input: cached input parameters.

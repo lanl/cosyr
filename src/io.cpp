@@ -213,6 +213,7 @@ void IO::dump_mesh(int step) const {
     std::string position_file(input.kernel.run_name + "/mesh/" + std::to_string(step) + "/comoving_mesh_pos.csv");
     std::string field_file(input.kernel.run_name + "/mesh/" + std::to_string(step) + "/comoving_mesh_field.csv");
     std::string gradient_file(input.kernel.run_name + "/mesh/" + std::to_string(step) + "/comoving_mesh_gradients.csv");
+    std::string stencil_file(input.kernel.run_name + "/mesh/" + std::to_string(step) + "/comoving_mesh_stencil.csv");
 
     file.open(position_file);
 
@@ -272,6 +273,17 @@ void IO::dump_mesh(int step) const {
       throw std::runtime_error("failed to open '" + gradient_file + "'");
 
     file.close();
+    file.open(stencil_file);
+
+    if (file.good()) {
+
+      file << "# number of neighbors" << "\n";
+      for (int i = 0; i < mesh.num_points; ++i) {
+        file << mesh.count_wavelets[i] << "\n";
+      }
+
+    } else
+      throw std::runtime_error("failed to open '" + stencil_file + "'");
 
     if (input.mpi.rank == 0) { std::cout << "done" << std::endl; }
     timer.stop("write_mesh");

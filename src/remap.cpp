@@ -265,6 +265,19 @@ void Remap::run(int particle, bool accumulate, bool rescale, double scaling) {
   elapsed[1] = timer::elapsed(tic, true);
 #endif
 
+
+  if (particle == 0) {
+    // store the number of wavelets per mesh point
+    mesh.count_wavelets.clear();
+    mesh.count_wavelets.resize(mesh.num_points);
+    Wonton::for_each(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                     grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                     [&](int j) {
+                        std::vector<int> const& list = neighbors[j];
+                        mesh.count_wavelets[j] = static_cast<int>(list.size());
+                     });
+  }
+
   // compute remap weights
   Accumulator accumulator(wave, grid, Portage::LocalRegression, WeightCenter::Gather,
                           kernels, support, smoothing_lengths, basis::Unitary);
@@ -469,7 +482,6 @@ void Remap::interpolate(int step, double scaling) {
     }
   }
 }
-
 
 /* -------------------------------------------------------------------------- */
 bool Remap::process(int step) const {
