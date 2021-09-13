@@ -268,8 +268,6 @@ void Remap::run(int particle, bool accumulate, bool rescale, double scaling) {
 
   if (particle == 0) {
     // store the number of wavelets per mesh point
-    mesh.count_wavelets.clear();
-    mesh.count_wavelets.resize(mesh.num_points);
     Wonton::for_each(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
                      grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
                      [&](int j) {
