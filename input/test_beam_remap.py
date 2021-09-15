@@ -8,7 +8,7 @@ from input.misc import *
 
 ####################### Preprocessing ##########################
 
-run_name = "test_beam_remap_g1000"
+run_name = "test_beam_remap_g1000_adaptive"
 
 ## electron and trajectory
 gamma=1000
