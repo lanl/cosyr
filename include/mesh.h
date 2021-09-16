@@ -110,6 +110,12 @@ public:
   Wonton::vector<int> count_wavelets;
 
   /**
+   * @brief Smoothing lengths for each mesh point
+   *
+   */
+  Wonton::vector<Point<DIM>> smoothing_lengths;
+
+  /**
    * @brief Create a new moving mesh.
    *
    * @param input: cached input parameters.

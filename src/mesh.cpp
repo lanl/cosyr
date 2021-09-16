@@ -29,6 +29,7 @@ Mesh::Mesh(const Input& input) : input(input) {
   fields.resize(num_points);
   for (auto& gradient : gradients) { gradient.resize(num_points); }
   count_wavelets.resize(num_points, 0);
+  smoothing_lengths.resize(num_points);
 
   // clear mesh fields
   auto const range = HostRange(0, num_points);

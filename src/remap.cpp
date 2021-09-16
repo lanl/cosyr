@@ -267,13 +267,18 @@ void Remap::run(int particle, bool accumulate, bool rescale, double scaling) {
 
 
   if (particle == 0) {
-    // store the number of wavelets per mesh point
+    // cache the number of wavelets per mesh point
     Wonton::for_each(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
                      grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
                      [&](int j) {
                         std::vector<int> const& list = neighbors[j];
                         mesh.count_wavelets[j] = static_cast<int>(list.size());
                      });
+
+    // cache the smoothing lengths per mesh point
+    Wonton::for_each(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                     grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
+                     [&](int j) { mesh.smoothing_lengths[j] = extents[j]; });
   }
 
   // compute remap weights

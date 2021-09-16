@@ -214,6 +214,7 @@ void IO::dump_mesh(int step) const {
     std::string field_file(input.kernel.run_name + "/mesh/" + std::to_string(step) + "/comoving_mesh_field.csv");
     std::string gradient_file(input.kernel.run_name + "/mesh/" + std::to_string(step) + "/comoving_mesh_gradients.csv");
     std::string stencil_file(input.kernel.run_name + "/mesh/" + std::to_string(step) + "/comoving_mesh_stencil.csv");
+    std::string smoothing_file(input.kernel.run_name + "/mesh/" + std::to_string(step) + "/comoving_mesh_smoothing.csv");
 
     file.open(position_file);
 
@@ -284,6 +285,20 @@ void IO::dump_mesh(int step) const {
 
     } else
       throw std::runtime_error("failed to open '" + stencil_file + "'");
+
+    file.close();
+    file.open(smoothing_file);
+
+    if (file.good()) {
+
+      file << "# smoothing lengths" << "\n";
+      for (int i = 0; i < mesh.num_points; ++i) {
+        Wonton::Point<DIM> const& radius = mesh.smoothing_lengths[i];
+        file << radius[0] << ", "<< radius[1] << "\n";
+      }
+
+    } else
+      throw std::runtime_error("failed to open '" + smoothing_file + "'");
 
     if (input.mpi.rank == 0) { std::cout << "done" << std::endl; }
     timer.stop("write_mesh");
