@@ -291,7 +291,8 @@ void IO::dump_mesh(int step) const {
 
     if (file.good()) {
 
-      file << "# smoothing lengths" << "\n";
+      file << "# smoothing_x, smoothing_y" << "\n";
+      file << std::setprecision(12);
       for (int i = 0; i < mesh.num_points; ++i) {
         Wonton::Point<DIM> const& radius = mesh.smoothing_lengths[i];
         file << radius[0] << ", "<< radius[1] << "\n";

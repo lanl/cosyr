@@ -197,6 +197,14 @@ class CosyrAnalyze(object):
             d = pd.read_csv(stencil_file, delimiter=",", dtype="int").values
             self.cmesh_wavelet_distrib = d[:,0]
 
+        # smoothing lengths
+        smoothing_file = self.data_dir+'/mesh/{}/comoving_mesh_smoothing.csv'.format(self.step)
+        if (os.path.isfile(smoothing_file)) :
+            d = pd.read_csv(smoothing_file, delimiter=",", dtype="float64").values
+            print(d)
+            self.cmesh_smoothing_x = d[:,0]
+            self.cmesh_smoothing_y = d[:,1]
+
 
     def load_cmesh_polar(self):
 
