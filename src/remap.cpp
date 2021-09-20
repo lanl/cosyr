@@ -188,9 +188,16 @@ Wonton::Point<DIM> Remap::deduce_local_coords(int particle) const {
   static_assert(DIM == 2, "dimension not yet supported");
 
   // compute local coordinates of current particle
-  auto position = Cabana::slice<Beam::Position>(beam.particles);
-  double const x = position(particle, PART_POS_X);
-  double const y = position(particle, PART_POS_Y);
+  auto const emit_position = Cabana::slice<Beam::EmitCoords>(beam.particles);
+  double const x = emit_position(particle, PART_POS_X);
+  double const y = emit_position(particle, PART_POS_Y);
+#ifdef DEBUG
+  auto const position = Cabana::slice<Beam::Position>(beam.particles);
+  double const x_prim = position(particle, PART_POS_X);
+  double const y_prim = position(particle, PART_POS_Y);
+  std::printf("(x, y) = (%f, %f), (x', y') = (%f, %f)", x, y, x_prim, y_prim);
+#endif
+
   double const cos_angle = mesh.center.cosin_angle[0];
   double const sin_angle = mesh.center.sinus_angle[0];
   double const x_local = x * cos_angle - y * sin_angle;
