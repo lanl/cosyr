@@ -49,6 +49,7 @@ void Beam::move_reference(int index_particle,
   auto position = Cabana::slice<Position>(particles);
   auto momentum = Cabana::slice<Momentum>(particles);
   auto lorentz  = Cabana::slice<Gamma>(particles);
+  auto emit_coords = Cabana::slice<EmitCoords>(particles);
 
   double gamma = lorentz(index_particle);
   double const hdt = 0.5 * dt;
@@ -110,6 +111,10 @@ void Beam::move_reference(int index_particle,
   host_emit_current[EMT_VEL_Z] = 0.5 * (new_vz + vz);
 #endif
 
+  // save coordinates at emission
+  emit_coords(index_particle, PART_POS_X) = new_x;
+  emit_coords(index_particle, PART_POS_Y) = new_y;
+
   // advance position for 2nd half step: x_{1/2} -> x_{1}
   new_x += new_vx * hdt;
   new_y += new_vy * hdt;
@@ -154,6 +159,7 @@ void Beam::move_others(Mesh const& mesh,
   auto position = Cabana::slice<Position>(particles);
   auto momentum = Cabana::slice<Momentum>(particles);
   auto gammas   = Cabana::slice<Gamma>(particles);
+  auto emit_coords = Cabana::slice<EmitCoords>(particles);
 
   auto b_trans = Cabana::slice<F1>(mesh.fields);
   auto e_trans = Cabana::slice<F2>(mesh.fields);
@@ -352,6 +358,10 @@ void Beam::move_others(Mesh const& mesh,
       mirror_emit_current[ipq + EMT_ACC_Z] = (new_vz - vz) / dt;
       mirror_emit_current[ipq + EMT_VEL_Z] = 0.5 * (new_vz + vz);
     #endif
+
+    // save coordinates at emission
+    emit_coords.access(s, a, PART_POS_X) = new_x;
+    emit_coords.access(s, a, PART_POS_Y) = new_y;
 
     // store velocity and advance position for 2nd half step: x_{1/2} -> x_{1}
     new_x += ux * hdt_inv_gamma; // time center position

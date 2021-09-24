@@ -15,7 +15,7 @@ public:
   /**
    * @brief Data attributes of each particle.
    */
-  enum Attributes { Position, Momentum, Gamma };
+  enum Attributes { Position, Momentum, Gamma, EmitCoords };
 
   /**
    * @brief Particle information.
@@ -24,7 +24,7 @@ public:
    * - its proper momentum (gamma * beta).
    * - its gamma at current step.
    */
-  using Data = Cabana::MemberTypes<double[DIM], double[DIM], double>;
+  using Data = Cabana::MemberTypes<double[DIM], double[DIM], double, double[DIM]>;
 
   /**
    * @brief Create a particle beam.

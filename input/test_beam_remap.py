@@ -37,7 +37,7 @@ emission_interval = num_step - 1   # only emit wavefronts at simulation end (tes
 ## remap
 remap_interval = num_step - 1       # interval of doing remapping (in time steps)
 remap_scatter = False               # use scatter weights form for remap
-remap_adaptive = False              # use adaptive smoothing length for remap
+remap_adaptive = True              # use adaptive smoothing length for remap
 remap_scaling[0] = 1.0              # base support/smoothing length scaling factor
 remap_scaling[1] = 1.0              # base support/smoothing length scaling factor
 remap_verbose = False               # print remap statistics

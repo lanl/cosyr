@@ -28,6 +28,7 @@ Remap::Remap(Input& in_input,
   int const num_points = mesh.num_points;
   grid.resize(mesh.num_points);
   extents.resize(num_points);
+  radii.resize(num_points);
   neighbors.resize(num_points);
   kernels.resize(num_points, Weight::B4);
   support.resize(num_points, Weight::ELLIPTIC);
@@ -47,12 +48,10 @@ Remap::Remap(Input& in_input,
   h[0] = input.remap.scaling[0] * h_unscaled[0];
   h[1] = input.remap.scaling[1] * h_unscaled[1];
 
-  Kokkos::parallel_for(HostRange(0, num_points),
-                       [&](int i) { smoothing_lengths[i] = Matrix(1, h); });
-
-  // set search radii
-  Kokkos::parallel_for(HostRange(0, num_points),
-                       [&](int i) { extents[i] = {h[0], h[1] }; });
+  auto const range = HostRange(0, num_points);
+  Kokkos::parallel_for(range, [&](int i) { smoothing_lengths[i] = Matrix(1, h); });
+  Kokkos::parallel_for(range, [&](int i) { extents[i] = { h[0], h[1] }; });
+  Kokkos::parallel_for(range, [&](int i) { radii[i] = { h[0], h[1] }; });
 
   gamma = input.kernel.motion_params[0];
   dtdx = input.kernel.dt / h_unscaled[0];
@@ -188,9 +187,16 @@ Wonton::Point<DIM> Remap::deduce_local_coords(int particle) const {
   static_assert(DIM == 2, "dimension not yet supported");
 
   // compute local coordinates of current particle
-  auto position = Cabana::slice<Beam::Position>(beam.particles);
-  double const x = position(particle, PART_POS_X);
-  double const y = position(particle, PART_POS_Y);
+  auto const emit_position = Cabana::slice<Beam::EmitCoords>(beam.particles);
+  double const x = emit_position(particle, PART_POS_X);
+  double const y = emit_position(particle, PART_POS_Y);
+#ifdef DEBUG
+  auto const position = Cabana::slice<Beam::Position>(beam.particles);
+  double const x_prim = position(particle, PART_POS_X);
+  double const y_prim = position(particle, PART_POS_Y);
+  std::printf("(x, y) = (%f, %f), (x', y') = (%f, %f)", x, y, x_prim, y_prim);
+#endif
+
   double const cos_angle = mesh.center.cosin_angle[0];
   double const sin_angle = mesh.center.sinus_angle[0];
   double const x_local = x * cos_angle - y * sin_angle;
@@ -326,7 +332,7 @@ void Remap::estimate_gradients() {
   // step 1: retrieve the neighbors of each mesh point
   using Filter = Portage::SearchPointsBins<DIM, Wonton::Swarm<DIM>, Wonton::Swarm<DIM>>;
 
-  Filter search(grid, grid, extents, extents, WeightCenter::Gather, 3);
+  Filter search(grid, grid, radii, radii, WeightCenter::Gather, 4);
   Wonton::transform(grid.begin(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
                     grid.end(Wonton::PARTICLE, Wonton::PARALLEL_OWNED),
                     neighbors.begin(), search);

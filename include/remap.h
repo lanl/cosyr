@@ -155,6 +155,12 @@ private:
   Wonton::vector<Point<DIM>> extents;
 
   /**
+   * @brief Search extents when gathering neighbors for gradient estimation.
+   *
+   */
+  Wonton::vector<Point<DIM>> radii;
+
+  /**
    * @brief List of wavelets in the vicinity of each mesh point.
    *
    */
