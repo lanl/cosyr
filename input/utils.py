@@ -231,3 +231,15 @@ def parallel_write_beam(beam, npart, path, rank) :
     dset = hf.create_dataset('beam', (nprocs*npart,4), dtype='f')
     dset[rank*npart:(rank+1)*npart,:] = beam
     hf.close()
+
+# load beam for each rank from separate csv files
+def load_beam(path, step, rank, format="csv") :
+    import numpy as np
+
+    filename = path + "/particles_" + str(step) + "_" + str(rank)
+    if (format == "csv") : 
+        filename = filename + ".csv"
+    data = np.genfromtxt(filename, delimiter=",", skip_header=1) # read CSV file
+    part = data[:,0:4].copy()
+    return part
+    
