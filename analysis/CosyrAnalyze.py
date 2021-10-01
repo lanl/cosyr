@@ -277,7 +277,7 @@ class CosyrAnalyze(object):
         hf.close()
   
 
-    def show_beam(self, np_slice=300, smooth_param=0.0, figsize=(12,8), tau_unit="um") :
+    def show_beam(self, np_slice=300, smooth_param=0.05, figsize=(12,8), tau_unit="um") :
         from ocelot.gui.accelerator import show_e_beam
         import matplotlib.pyplot as plt
 
