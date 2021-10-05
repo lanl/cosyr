@@ -207,7 +207,7 @@ class CosyrAnalyze(object):
         self.cmesh_polar_afld /= self.gamma**4.0
         
 
-    def load_beam_csv(self, convert2local=True):
+    def load_beam_csv(self, convert2local=True, use_FS_frame=False):
         import fnmatch
         import os
         import pandas as pd
@@ -241,15 +241,28 @@ class CosyrAnalyze(object):
 
         # change to local coordinates
         if (convert2local) :
-           print("converting to local coordinate...")
-           x0=self.beam[0,0]
-           y0=self.beam[0,1] 
-           theta = np.arctan2(y0,x0)
-           print("beam rotation angle =", np.pi/2.0-theta)
-           x_prime = (self.beam[:,0] - x0) * np.sin(theta) - (self.beam[:,1] - y0) * np.cos(theta)
-           y_prime = (self.beam[:,0] - x0) * np.cos(theta) + (self.beam[:,1] - y0) * np.sin(theta)
-           py_prime = self.beam[:,2] * np.cos(theta) + self.beam[:,3] * np.sin(theta)
-           px_prime = self.beam[:,2] * np.sin(theta) - self.beam[:,3] * np.cos(theta)
+           if (use_FS_frame) :
+              print("converting to FS coordinate...")
+              x0=self.beam[0,0]
+              y0=self.beam[0,1] 
+              radius = np.sqrt(x0*x0 + y0*y0)
+              print("beam rotation radius =", radius)
+              theta = np.arctan2(self.beam[:,1], self.beam[:,0])
+              x_prime = (theta[0]- theta)*radius
+              y_prime = np.sqrt(self.beam[:,0]*self.beam[:,0] + self.beam[:,1]*self.beam[:,1]) - radius 
+              py_prime = self.beam[:,2] * np.cos(theta) + self.beam[:,3] * np.sin(theta)
+              px_prime = self.beam[:,2] * np.sin(theta) - self.beam[:,3] * np.cos(theta)
+           else :   
+              print("converting to local (x,y) coordinate...")
+              x0=self.beam[0,0]
+              y0=self.beam[0,1] 
+              theta = np.arctan2(y0,x0)
+              print("beam rotation angle =", np.pi/2.0-theta)
+              x_prime = (self.beam[:,0] - x0) * np.sin(theta) - (self.beam[:,1] - y0) * np.cos(theta)
+              y_prime = (self.beam[:,0] - x0) * np.cos(theta) + (self.beam[:,1] - y0) * np.sin(theta)
+              py_prime = self.beam[:,2] * np.cos(theta) + self.beam[:,3] * np.sin(theta)
+              px_prime = self.beam[:,2] * np.sin(theta) - self.beam[:,3] * np.cos(theta)
+
            self.beam[:,0] = x_prime
            self.beam[:,1] = y_prime
            self.beam[:,2] = px_prime
@@ -289,7 +302,23 @@ class CosyrAnalyze(object):
             self.p_beam = self.convert2ocelot(self.beam, self.charge, self.gamma, self.R_bend)
             print("done.")
 
-        show_e_beam(p_array=self.p_beam, nparts_in_slice=np_slice, smooth_param = smooth_param, title="t="+str(np.round(self.step*self.dt,4)), inverse_tau=True, figsize=figsize, tau_units=tau_unit)
+        show_e_beam(p_array=self.p_beam, nparts_in_slice=np_slice, smooth_param = smooth_param, show_moments=False, title="t="+str(np.round(self.step*self.dt,4)), inverse_tau=True, figsize=figsize, tau_units=tau_unit)
+        plt.tight_layout(pad=0.6)
+
+
+    def show_phase_space(self, np_slice=300, smooth_param=0.05, figsize=(12,8)) :
+        from ocelot.gui.accelerator import show_phase_space
+        import matplotlib.pyplot as plt
+
+        if (self.beam is None) : 
+            print("no beam loaded")
+            return
+        elif (self.p_beam is None) : 
+            print("converting beam to ocelot p_array ...")
+            self.p_beam = self.convert2ocelot(self.beam, self.charge, self.gamma, self.R_bend)
+            print("done.")
+
+        show_phase_space(p_array=self.p_beam, nparts_in_slice=np_slice, smooth_param = smooth_param, show_moments=False, title="t="+str(np.round(self.step*self.dt,4)), inverse_tau=True, figsize=figsize)
         plt.tight_layout(pad=0.6)
 
     
