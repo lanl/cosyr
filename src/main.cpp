@@ -60,6 +60,24 @@ int main(int argc, char* argv[]) {
 
         // note: does not include the current emission
         int const num_active_wavefront = pusher.num_active_emission;
+        // GPU restrictions: if we pass an attribute of an object to a
+        // __host__ __device__ function then the enclosing object will be
+        // passed as well. Instead, we need to retrieve those attributes, then
+        // pass them as parameters of each cosyr::kernel function.
+        int const num_loaded_wavelets = input.wavelets.count;
+        int const num_wavefronts = input.kernel.num_wavefronts;
+        int const num_directions = input.kernel.num_dirs;
+        double const min_emit_angle = input.kernel.min_emit_angle;
+        double const mesh_center_x = mesh.center.position[0];
+        double const mesh_center_y = mesh.center.position[1];
+        double const mesh_center_angle = mesh.center.angle[0];
+        double const mesh_center_cosin = mesh.center.cosin_angle[0];
+        double const mesh_center_sinus = mesh.center.sinus_angle[0];
+        double const mesh_radius = input.kernel.radius;
+        double const mesh_half_width_x = mesh.half_width[0];
+        double const mesh_half_width_y = mesh.half_width[1];
+        bool const use_subcycle_wavelets = input.wavelets.found and input.wavelets.subcycle;
+
 
         // field calculation for wavelet emitted at t=(i+1/2)*dt and mesh at t=(i+1)*dt
         // sin/cos limits set by the four mesh boundaries
@@ -72,21 +90,21 @@ int main(int argc, char* argv[]) {
                                         wavelets.loaded.device.fields,
                                         wavelets.emitted.device.coords,
                                         wavelets.emitted.device.fields,
-                                        input.wavelets.count,
-                                        input.kernel.num_wavefronts,
-                                        input.kernel.num_dirs,
+                                        num_loaded_wavelets,
+                                        num_wavefronts,
+                                        num_directions,
                                         num_active_wavefront, index_particle,
-                                        mesh.center.cosin_angle[0],
-                                        mesh.center.sinus_angle[0],
-                                        input.kernel.radius,
-                                        input.wavelets.found and input.wavelets.subcycle);
+                                        mesh_center_cosin,
+                                        mesh_center_sinus,
+                                        mesh_radius,
+                                        use_subcycle_wavelets);
 
           // loop over wavefronts from most recent one (not current one) to oldest one
           for (int iw = num_active_wavefront-1; iw >= 0; iw--) {
 
-            int const index_wavefront = index_particle * input.kernel.num_wavefronts;
+            int const index_wavefront = index_particle * num_wavefronts;
             int const index_emit_wave = (index_wavefront + iw) * NUM_EMT_QUANTITIES;
-            int const index_wavelet   = (index_wavefront + num_active_wavefront - iw) * input.kernel.num_dirs;
+            int const index_wavelet   = (index_wavefront + num_active_wavefront - iw) * num_directions;
 
             double const dt_emit = t - beam.emit_info(index_emit_wave + EMT_TIME); // time since emission
 
@@ -101,11 +119,11 @@ int main(int argc, char* argv[]) {
             int range_count = cosyr::kernel::intersect_wavefronts_mesh(beam.emit_info,
                                                                       index_emit_wave,
                                                                       dt_emit,
-                                                                      mesh.half_width[0],
-                                                                      mesh.half_width[1],
-                                                                      mesh.center.cosin_angle[0],
-                                                                      mesh.center.sinus_angle[0],
-                                                                      input.kernel.radius,
+                                                                      mesh_half_width_x,
+                                                                      mesh_half_width_y,
+                                                                      mesh_center_cosin,
+                                                                      mesh_center_sinus,
+                                                                      mesh_radius,
                                                                       angle_range,
                                                                       angle_running_sum);
 
@@ -117,16 +135,16 @@ int main(int argc, char* argv[]) {
                                             index_wavelet,
                                             index_emit_wave,
                                             dt_emit, q, gamma_ref,
-                                            input.kernel.min_emit_angle,
-                                            input.kernel.num_dirs,
+                                            min_emit_angle,
+                                            num_directions,
                                             range_count,
                                             angle_range,
                                             angle_running_sum,
-                                            mesh.center.position[0],
-                                            mesh.center.position[1],
-                                            mesh.center.angle[0],
-                                            mesh.center.cosin_angle[0],
-                                            mesh.center.sinus_angle[0]);
+                                            mesh_center_x,
+                                            mesh_center_y,
+                                            mesh_center_angle,
+                                            mesh_center_cosin,
+                                            mesh_center_sinus);
           } // end of iw 
         });
 
