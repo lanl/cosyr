@@ -76,6 +76,14 @@ public:
   void print(int step, int index_particle) const;
 
   /**
+   * @brief Create beam from a specified one.
+   *
+   * @param count: number of particles.
+   * @param beam: coordinates and momenta of each particle.
+   */
+  void copy(int count, const double* beam);
+
+  /**
    * @brief Charge per particle, in unit of positron charge.
    *
    */
@@ -146,14 +154,6 @@ private:
    * @param init_momentum: initial momentum.
    */
   void init(const double *init_position, const double *init_momentum) const;
-
-  /**
-   * @brief Create beam from a specified one.
-   *
-   * @param count: number of particles.
-   * @param beam: coordinates and momenta of each particle.
-   */
-  void copy(int count, const double* beam);
 
   /**
    * @brief Calculate proper momentum at a given position x.
