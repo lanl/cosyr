@@ -68,7 +68,6 @@ target_sources(cosyr PRIVATE
     src/beam.cpp
     src/mesh.cpp
     src/remap.cpp
-    src/kernel.cpp
     src/pusher.cpp
     src/wavelet.cpp
     src/input.cpp

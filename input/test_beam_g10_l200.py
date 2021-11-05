@@ -63,7 +63,7 @@ mesh_width = scaled_chi/gamma**2          # in unit of radius
 # load wavelets
 cosyr_root = '..'
 path2subcycling = cosyr_root + "/input/wavelets/g10-200x200um-sub"
-wavelet_x, wavelet_y, wavelet_field = load_wavelets(path2subcycling, fld_file="EsRad_sub.csv", unscale_coord=True, _gamma = gamma)
+wavelet_x, wavelet_y, wavelet_field = load_wavelets(path2subcycling, fld_file="EsRad_sub.csv", unscale_coord=True, _gamma = gamma, broadcast=False)
 if (mpi_rank==0) :
     print("wavelet shape =", wavelet_x.shape, wavelet_y.shape, wavelet_field.shape)
     print("wavelet field 0 min/max =", wavelet_field.min(), wavelet_field.max())
