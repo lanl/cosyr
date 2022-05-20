@@ -221,9 +221,9 @@ def write_beam(beam, path, rank) :
     hf.create_dataset('beam', data=beam, dtype='f')
     hf.close()
 
-# write beam from each rank into one file, requires mpi4py and parallel h5py
-# it is recommended to use python virtual environment and export PYTHONPATH to the corresponding site-package directory
 def parallel_write_beam(beam, npart, path, rank) :
+    # write beam from each rank into one file, requires mpi4py and parallel h5py
+    # it is recommended to use python virtual environment and export PYTHONPATH to the corresponding site-package directory
     from mpi4py import MPI
     import h5py
     nprocs = MPI.COMM_WORLD.Get_size()
@@ -232,8 +232,8 @@ def parallel_write_beam(beam, npart, path, rank) :
     dset[rank*npart:(rank+1)*npart,:] = beam
     hf.close()
 
-# load beam for each rank from separate csv files
 def load_beam(path, step, rank, format="csv") :
+    # load beam for each rank from separate csv files
     import numpy as np
 
     filename = path + "/particles_" + str(step) + "_" + str(rank)
@@ -242,4 +242,16 @@ def load_beam(path, step, rank, format="csv") :
     data = np.genfromtxt(filename, delimiter=",", skip_header=1) # read CSV file
     part = data[:,0:4].copy()
     return part
-    
+
+def copy_input_deck(path) :
+    # copy input deck to path
+    import shutil
+    import os
+    import __main__ as main
+
+    input_deck = main.__file__
+    input_deck_basename = os.path.basename(input_deck)
+    shutil.copy(input_deck, path + "/" + input_deck_basename)
+    print(input_deck_basename + " copied to " + path)
+
+    return
