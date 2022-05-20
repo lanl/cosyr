@@ -266,9 +266,9 @@ void Beam::move_others(Mesh const& mesh,
     double bz = cx * cy * b_trans(top_right) + cx * cy1 * b_trans(bottom_right)
                 + cx1 * cy * b_trans(top_left) + cx1 * cy1 * b_trans(bottom_left);
 
-    el *= unit_fac;
-    et *= unit_fac;
-    bz *= unit_fac;
+    el *= 1.0*unit_fac;
+    et *= 1.0*unit_fac;
+    bz *= 1.0*unit_fac;
     #ifdef DEBUG
       std::cout << std::setprecision(12);
       std::cout << "top_right, bottom_right, top_left, bottom_left, size = "
@@ -291,7 +291,7 @@ void Beam::move_others(Mesh const& mesh,
     double bx = 0.0;
     double by = 0.0;
     //bz += bz0;
-    bz = (new_x > 0.0) ? bz0 : 0.0;
+    bz += (new_x > 0.0) ? bz0 : 0.0;
 
     // momentum update (Boris): u_{0} -> u_{1}
     // first electric half push

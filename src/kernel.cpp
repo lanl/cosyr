@@ -338,12 +338,13 @@ void calculate_fields(Kokkos::View<double*> emit_info,
 
       double Brad_z = -acc_fld_x * n_y + acc_fld_y * n_x; //B^{rad}_{z}
       double Erad_t =  acc_fld_x * wpx + acc_fld_y * wpy; // E^{rad}_{t}
+      //double Erad_t =  acc_fld_x * sin_mc_angle + acc_fld_y * cos_mc_angle; // E^{rad}_{t}
 
       // beta is along direction of the vector (cos_mc_angle, -sin_mc_angle)
       double betaprime_dot_beta = beta*(cos_mc_angle * betaprime_x - sin_mc_angle * betaprime_y);
 
       #ifdef MIX_KERNEL
-      emitted_field[0](index_wavelet) = 0.0; 
+      emitted_field[0](index_wavelet) = Brad_z; 
       //emitted_field[0](index_wavelet) = qr / one_minus_n_dot_betaprime; // phi  
       emitted_field[1](index_wavelet) = Erad_t - beta*Brad_z; 
       //emitted_field[2](index_wavelet) = qr * (1.0-betaprime_dot_beta) / one_minus_n_dot_betaprime; // phi-beta*As 
