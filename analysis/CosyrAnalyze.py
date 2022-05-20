@@ -290,7 +290,7 @@ class CosyrAnalyze(object):
         hf.close()
   
 
-    def show_beam(self, np_slice=300, smooth_param=0.05, figsize=(12,8), tau_unit="um") :
+    def show_beam(self, np_slice=300, smooth_param=0.05, figsize=(12,8), tau_unit="um", show_mom=False, filename=None) :
         from ocelot.gui.accelerator import show_e_beam
         import matplotlib.pyplot as plt
 
@@ -302,11 +302,14 @@ class CosyrAnalyze(object):
             self.p_beam = self.convert2ocelot(self.beam, self.charge, self.gamma, self.R_bend)
             print("done.")
 
-        show_e_beam(p_array=self.p_beam, nparts_in_slice=np_slice, smooth_param = smooth_param, show_moments=False, title="t="+str(np.round(self.step*self.dt,4)), inverse_tau=True, figsize=figsize, tau_units=tau_unit)
+        show_e_beam(p_array=self.p_beam, nparts_in_slice=np_slice, smooth_param = smooth_param, show_moments=show_mom, 
+                    title="t="+str(np.round(self.step*self.dt,4)), inverse_tau=True, figsize=figsize, tau_units=tau_unit)
         plt.tight_layout(pad=0.6)
+        if filename is not None:
+           plt.savefig(filename, dpi=300) 
 
 
-    def show_phase_space(self, np_slice=300, smooth_param=0.05, figsize=(12,8)) :
+    def show_phase_space(self, np_slice=300, smooth_param=0.05, figsize=(12,8), show_mom=False, filename=None) :
         from ocelot.gui.accelerator import show_phase_space
         import matplotlib.pyplot as plt
 
@@ -318,8 +321,10 @@ class CosyrAnalyze(object):
             self.p_beam = self.convert2ocelot(self.beam, self.charge, self.gamma, self.R_bend)
             print("done.")
 
-        show_phase_space(p_array=self.p_beam, nparts_in_slice=np_slice, smooth_param = smooth_param, show_moments=False, title="t="+str(np.round(self.step*self.dt,4)), inverse_tau=True, figsize=figsize)
+        show_phase_space(p_array=self.p_beam, nparts_in_slice=np_slice, smooth_param = smooth_param, show_moments=show_mom, title="t="+str(np.round(self.step*self.dt,4)), inverse_tau=True, figsize=figsize)
         plt.tight_layout(pad=0.6)
+        if filename is not None:
+           plt.savefig(filename, dpi=300) 
 
     
     # convert beam to ocelot ParticleArray
